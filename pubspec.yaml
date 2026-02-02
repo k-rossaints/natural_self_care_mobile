@@ -1,0 +1,44 @@
+name: natural_self_care_mobile
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Tes packages
+  cupertino_icons: ^1.0.8
+  dio: ^5.9.0
+  flutter_riverpod: ^3.2.0
+  cached_network_image: ^3.4.1
+  flutter_svg: ^2.2.3  # Indispensable pour ton favicon.svg
+  go_router: ^17.0.1
+  google_fonts: ^8.0.0
+  url_launcher: ^6.3.2
+  share_plus: ^12.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  # Outil pour générer l'icône du téléphone (nécessite un PNG, pas SVG)
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+
+  # C'est ICI qu'on déclare ton dossier assets
+  assets:
+    - assets/
+
+# Configuration pour l'icône du téléphone (optionnel pour l'instant)
+# Note : Pour l'icône de lancement, il faudra convertir ton SVG en PNG
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/favicon.png" 
+  min_sdk_android: 21
