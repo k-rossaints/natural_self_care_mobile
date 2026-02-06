@@ -4,6 +4,7 @@ import '../models/symptom.dart';
 import '../models/decision_step.dart';
 import '../models/reference.dart';
 import '../models/generic_reference.dart';
+import '../models/pending_reference.dart';
 
 class ApiService {
   static const String baseUrl = 'http://directus-rk4w4cskcos4kwwoc84s88ss.46.224.187.154.sslip.io';
@@ -117,5 +118,20 @@ class ApiService {
 
   String getImageUrl(String imageId) {
     return '$baseUrl/assets/$imageId?width=600&quality=80&fit=cover';
+  }
+
+  // Références en attente (Nouvelle section)
+  Future<List<PendingReference>> getPendingReferences() async {
+    try {
+      final response = await _dio.get('/items/pending_references', queryParameters: {
+        'fields': 'id,topic,claim,scientific_data',
+        'sort': 'id',
+        'limit': -1,
+      });
+      return (response.data['data'] as List).map((json) => PendingReference.fromJson(json)).toList();
+    } catch (e) {
+      print('Erreur Pending Refs: $e');
+      return [];
+    }
   }
 }
