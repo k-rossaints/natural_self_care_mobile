@@ -105,7 +105,8 @@ class ApiService {
   Future<Plant> getPlantDetails(int id) async {
     try {
       final response = await _dio.get('/items/plants/$id', queryParameters: {
-        'fields': 'id,name,slug,scientific_name,common_names,habitat,image,plant_type,description_short,is_clinically_validated,safety_precautions,side_effects,usage_preparation,usage_duration,description_visual,procurement_picking,procurement_buying,procurement_culture,confusion_risks,linked_ailments.ailments_id.name',
+        // MODIFICATION ICI : Ajout de 'scientific_references'
+        'fields': 'id,name,slug,scientific_name,common_names,habitat,image,plant_type,description_short,is_clinically_validated,safety_precautions,side_effects,usage_preparation,usage_duration,description_visual,procurement_picking,procurement_buying,procurement_culture,confusion_risks,scientific_references,linked_ailments.ailments_id.name',
       });
       return Plant.fromJson(response.data['data']);
     } catch (e) {

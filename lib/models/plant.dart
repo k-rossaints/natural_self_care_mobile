@@ -3,22 +3,22 @@ class Plant {
   final String name;
   final String? slug;
   final String? scientificName;
-  final String? commonNames; // Nouveau
+  final String? commonNames;
   final String? habitat;
   final String? image;
   final String? descriptionShort;
   final String? plantType;
   final bool isClinicallyValidated;
   final String? safetyPrecautions;
-  final String? sideEffects; // Nouveau
+  final String? sideEffects;
   final String? usagePreparation;
-  final String? usageDuration; // Nouveau
+  final String? usageDuration;
   final String? descriptionVisual;
-  // Nouveaux champs pour l'identification
   final String? procurementPicking;
   final String? procurementBuying;
   final String? procurementCulture;
   final String? confusionRisks;
+  final String? scientificReferences; // <--- NOUVEAU CHAMP
   
   final List<String> ailments;
 
@@ -42,6 +42,7 @@ class Plant {
     this.procurementBuying,
     this.procurementCulture,
     this.confusionRisks,
+    this.scientificReferences, // <--- AJOUTER ICI
     this.ailments = const [],
   });
 
@@ -75,16 +76,15 @@ class Plant {
       procurementBuying: json['procurement_buying'],
       procurementCulture: json['procurement_culture'],
       confusionRisks: json['confusion_risks'],
+      scientificReferences: json['scientific_references'], // <--- RÉCUPÉRATION DU JSON
       ailments: extractedAilments,
     );
   }
 }
 
-// Fonction utilitaire pour retirer les accents
 String removeDiacritics(String str) {
   var withDia = 'ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž';
   var withoutDia = 'AAAAAAaaaaaaOOOOOOOooooooEEEEeeeeeCcDIIIIiiiiUUUUuuuuNnSsYyyZz';
-
   for (int i = 0; i < withDia.length; i++) {
     str = str.replaceAll(withDia[i], withoutDia[i]);
   }

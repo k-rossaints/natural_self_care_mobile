@@ -54,34 +54,7 @@ class PlantCard extends StatelessWidget {
                         : const Center(child: Icon(Icons.local_florist, size: 40, color: Colors.black12)),
                   ),
                   
-                  if (plant.isClinicallyValidated)
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.95),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.check_circle, size: 14, color: Colors.orange.shade700),
-                            const SizedBox(width: 4),
-                            Text(
-                              "Validé",
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.orange.shade800,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                  // J'AI SUPPRIMÉ LE BADGE "VALIDÉ" ICI
                 ],
               ),
 
@@ -110,7 +83,7 @@ class PlantCard extends StatelessWidget {
                       ),
                     ),
                     
-                    // --- NOUVEAU : Affichage de l'Habitat ---
+                    // Affichage de l'Habitat
                     if (plant.habitat != null && plant.habitat!.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 8, bottom: 4),
@@ -129,7 +102,6 @@ class PlantCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                    // ----------------------------------------
 
                     const SizedBox(height: 12),
                     

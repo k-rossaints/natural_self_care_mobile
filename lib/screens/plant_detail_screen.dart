@@ -7,7 +7,7 @@ import '../services/api_service.dart';
 import '../theme.dart';
 
 class PlantDetailScreen extends StatefulWidget {
-  final Plant plant; // La plante "partielle" (juste nom + image)
+  final Plant plant;
 
   const PlantDetailScreen({super.key, required this.plant});
 
@@ -18,7 +18,7 @@ class PlantDetailScreen extends StatefulWidget {
 class _PlantDetailScreenState extends State<PlantDetailScreen> {
   final ApiService _api = ApiService();
   
-  late Plant _displayPlant; // La plante complète qu'on va afficher
+  late Plant _displayPlant;
   List<Reference> _references = [];
   bool _loadingRefs = true;
   bool _loadingDetails = true;
@@ -26,17 +26,13 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
   @override
   void initState() {
     super.initState();
-    // 1. On affiche immédiatement ce qu'on a (Nom, Image)
     _displayPlant = widget.plant;
-    
-    // 2. On lance le chargement du reste en arrière-plan
     _loadFullDetails();
     _loadReferences();
   }
 
   Future<void> _loadFullDetails() async {
     try {
-      // On va chercher la version complète de la plante
       final fullPlant = await _api.getPlantDetails(widget.plant.id);
       if (mounted) {
         setState(() {
@@ -45,7 +41,6 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
         });
       }
     } catch (e) {
-      // En cas d'erreur, on garde la version de base
       if (mounted) setState(() => _loadingDetails = false);
     }
   }
@@ -66,7 +61,6 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // On utilise _displayPlant qui contient les infos mises à jour
     final plant = _displayPlant;
     final imageUrl = plant.image != null ? _api.getImageUrl(plant.image!) : null;
 
@@ -102,7 +96,6 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Si on charge encore les détails, on met une petite barre de progression discrète
                   if (_loadingDetails)
                     const Padding(
                       padding: EdgeInsets.only(bottom: 20.0),
@@ -118,7 +111,6 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                   ]),
                   const SizedBox(height: 12),
 
-                  // Noms
                   Text(plant.scientificName ?? '', style: const TextStyle(fontStyle: FontStyle.italic, color: AppTheme.textGrey, fontSize: 18, fontFamily: 'Serif')),
                   
                   if (plant.commonNames != null && plant.commonNames!.isNotEmpty)
@@ -253,9 +245,29 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                     ]),
                   ),
 
-                  // RÉFÉRENCES
+                  // --- CARTE SCIENCE (NOUVEAU) ---
+                  if (plant.scientificReferences != null && plant.scientificReferences!.isNotEmpty)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      // J'utilise une couleur gris/neutre pour le scientifique
+                      decoration: _cardDecoration(Colors.grey.shade50, Colors.grey),
+                      child: Column(
+                        children: [
+                          _cardHeader("Informations scientifiques", Icons.science, Colors.grey.shade100, Colors.grey.shade800),
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(
+                              plant.scientificReferences!,
+                              style: const TextStyle(height: 1.5, fontSize: 14, color: AppTheme.textDark),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  // RÉFÉRENCES (Bibliographie)
                   if (!_loadingRefs && _references.isNotEmpty) ...[
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 10),
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
