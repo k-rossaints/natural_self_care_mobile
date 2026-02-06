@@ -3,21 +3,19 @@ import '../theme.dart';
 import '../screens/about_screen.dart';
 import '../screens/methodology_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:url_launcher/url_launcher.dart'; // <--- NOUVEL IMPORT
+import 'package:url_launcher/url_launcher.dart';
 
 class MainDrawer extends StatelessWidget {
   final Function(int) onTabChange;
 
   const MainDrawer({super.key, required this.onTabChange});
 
-  // Fonction pour ouvrir le lien
-  Future<void> _launchFacebook() async {
-    final Uri url = Uri.parse('https://facebook.com/naturalselfcareweb');
-    // Mode externalApplication pour ouvrir l'appli Facebook si installée, sinon le navigateur
+  // Fonction générique pour ouvrir n'importe quel lien
+  Future<void> _launchURL(String urlString) async {
+    final Uri url = Uri.parse(urlString);
     try {
-      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-        throw Exception('Impossible d\'ouvrir $url');
-      }
+      // LaunchMode.externalApplication force l'ouverture dans le navigateur (Chrome/Safari)
+      await launchUrl(url, mode: LaunchMode.externalApplication);
     } catch (e) {
       print("Erreur ouverture lien: $e");
     }
@@ -26,7 +24,7 @@ class MainDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      child: Column( // On utilise Column pour pousser la version tout en bas
+      child: Column(
         children: [
           Expanded(
             child: ListView(
@@ -56,7 +54,7 @@ class MainDrawer extends StatelessWidget {
                   ),
                 ),
                 
-                // NAVIGATION PRINCIPALE
+                // --- NAVIGATION PRINCIPALE ---
                 ListTile(
                   leading: const Icon(Icons.home_filled, color: AppTheme.teal1),
                   title: const Text('Accueil', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -92,7 +90,7 @@ class MainDrawer extends StatelessWidget {
 
                 const Divider(),
 
-                // PAGES D'INFO
+                // --- PAGES D'INFO INTERNES ---
                 ListTile(
                   leading: const Icon(Icons.info_outline),
                   title: const Text('À propos'),
@@ -112,17 +110,35 @@ class MainDrawer extends StatelessWidget {
 
                 const Divider(),
 
-                // BOUTON FACEBOOK (NOUVEAU)
+                // --- LIENS EXTERNES & LÉGAUX (MIS À JOUR) ---
+                
+                // Facebook
                 ListTile(
-                  leading: const Icon(Icons.facebook, color: Color(0xFF1877F2)), // Bleu officiel FB
+                  leading: const Icon(Icons.facebook, color: Color(0xFF1877F2)),
                   title: const Text('Suivez-nous sur Facebook', style: TextStyle(fontWeight: FontWeight.w600)),
-                  onTap: _launchFacebook,
+                  onTap: () => _launchURL('https://facebook.com/naturalselfcareweb'),
+                ),
+
+                // Politique de confidentialité (Lien temporaire)
+                ListTile(
+                  leading: const Icon(Icons.privacy_tip_outlined, color: Colors.grey),
+                  title: const Text('Politique de confidentialité', style: TextStyle(fontSize: 14)),
+                  dense: true,
+                  onTap: () => _launchURL('http://46.224.187.154.nip.io/confidentialite'),
+                ),
+
+                // Mentions légales (Lien temporaire)
+                ListTile(
+                  leading: const Icon(Icons.gavel_outlined, color: Colors.grey),
+                  title: const Text('Mentions légales', style: TextStyle(fontSize: 14)),
+                  dense: true,
+                  onTap: () => _launchURL('http://46.224.187.154.nip.io/mentions-legales'),
                 ),
               ],
             ),
           ),
           
-          // PIED DE PAGE (Version)
+          // PIED DE PAGE
           const Padding(
             padding: EdgeInsets.all(16.0),
             child: Text("v1.0.0 - ASC Genève", style: TextStyle(color: Colors.grey, fontSize: 12)),
