@@ -18,7 +18,7 @@ class Plant {
   final String? procurementBuying;
   final String? procurementCulture;
   final String? confusionRisks;
-  final String? scientificReferences; // <--- NOUVEAU CHAMP
+  final String? scientificReferences;
   
   final List<String> ailments;
 
@@ -42,7 +42,7 @@ class Plant {
     this.procurementBuying,
     this.procurementCulture,
     this.confusionRisks,
-    this.scientificReferences, // <--- AJOUTER ICI
+    this.scientificReferences,
     this.ailments = const [],
   });
 
@@ -54,6 +54,9 @@ class Plant {
           extractedAilments.add(item['ailments_id']['name']);
         }
       }
+    } else if (json['ailments_list'] != null) {
+      // Pour la récupération depuis le mode hors ligne (format simplifié)
+      extractedAilments = List<String>.from(json['ailments_list']);
     }
 
     return Plant(
@@ -76,9 +79,36 @@ class Plant {
       procurementBuying: json['procurement_buying'],
       procurementCulture: json['procurement_culture'],
       confusionRisks: json['confusion_risks'],
-      scientificReferences: json['scientific_references'], // <--- RÉCUPÉRATION DU JSON
+      scientificReferences: json['scientific_references'],
       ailments: extractedAilments,
     );
+  }
+
+  // --- NOUVEAU : Fonction pour transformer la plante en texte pour la sauvegarde ---
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'slug': slug,
+      'scientific_name': scientificName,
+      'common_names': commonNames,
+      'habitat': habitat,
+      'image': image,
+      'description_short': descriptionShort,
+      'plant_type': plantType,
+      'is_clinically_validated': isClinicallyValidated,
+      'safety_precautions': safetyPrecautions,
+      'side_effects': sideEffects,
+      'usage_preparation': usagePreparation,
+      'usage_duration': usageDuration,
+      'description_visual': descriptionVisual,
+      'procurement_picking': procurementPicking,
+      'procurement_buying': procurementBuying,
+      'procurement_culture': procurementCulture,
+      'confusion_risks': confusionRisks,
+      'scientific_references': scientificReferences,
+      'ailments_list': ailments, // On sauvegarde la liste simple
+    };
   }
 }
 

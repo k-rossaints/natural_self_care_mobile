@@ -24,8 +24,8 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
   
   late Plant _displayPlant;
   List<Reference> _references = [];
-  bool _loadingRefs = true;
   bool _loadingDetails = true;
+  bool _loadingRefs = true; // <--- C'EST CA QUI MANQUAIT !
 
   @override
   void initState() {
@@ -45,6 +45,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
         });
       }
     } catch (e) {
+      print("Info: Impossible de charger plus de détails ($e)");
       if (mounted) setState(() => _loadingDetails = false);
     }
   }
@@ -54,7 +55,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
     if (mounted) {
       setState(() {
         _references = refs;
-        _loadingRefs = false;
+        _loadingRefs = false; // On met à jour l'état ici
       });
     }
   }
@@ -64,19 +65,17 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
   }
 
   // ==========================================
-  // GÉNÉRATION DU PDF (TOUT OU RIEN + DESIGN)
+  // GÉNÉRATION DU PDF
   // ==========================================
   Future<void> _generatePdf(BuildContext context) async {
     final pdf = pw.Document();
     final plant = _displayPlant;
 
-    // 1. Chargement des polices
     final fontRegular = await PdfGoogleFonts.openSansRegular();
     final fontBold = await PdfGoogleFonts.openSansBold();
     final fontItalic = await PdfGoogleFonts.openSansItalic();
     final iconFont = await PdfGoogleFonts.materialIcons();
 
-    // 2. Image
     pw.MemoryImage? pdfImage;
     if (plant.image != null) {
       try {
@@ -103,7 +102,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
         
         build: (pw.Context context) {
           return [
-            // --- EN-TÊTE COMPACT ---
+            // EN-TÊTE
             pw.Container(
               padding: const pw.EdgeInsets.only(bottom: 20),
               margin: const pw.EdgeInsets.only(bottom: 20),
@@ -113,7 +112,6 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
               child: pw.Row(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  // Texte
                   pw.Expanded(
                     flex: 2,
                     child: pw.Column(
@@ -121,29 +119,21 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                       children: [
                         pw.Text("Natural Self-Care - Fiche descriptive", style: const pw.TextStyle(color: PdfColors.teal, fontSize: 9)),
                         pw.SizedBox(height: 8),
-                        
                         pw.Text(plant.name, style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: PdfColors.black)),
                         pw.Text(plant.scientificName ?? '', style: pw.TextStyle(fontSize: 14, fontStyle: pw.FontStyle.italic, color: PdfColors.grey700)),
-                        
                         pw.SizedBox(height: 12),
-                        
                         pw.Wrap(spacing: 5, runSpacing: 5, children: [
                           if (plant.isClinicallyValidated) _pdfBadge("Validé scientifiquement", PdfColors.orange800, PdfColors.orange100, const pw.IconData(0xe838)),
                           if (plant.habitat != null) _pdfBadge(plant.habitat!, PdfColors.grey800, PdfColors.grey200, null),
                           if (plant.plantType != null) _pdfBadge(plant.plantType!, PdfColors.blue800, PdfColors.blue100, null),
                         ]),
-
                         pw.SizedBox(height: 12),
-                        
                         if (plant.descriptionShort != null)
                           pw.Text(plant.descriptionShort!, style: const pw.TextStyle(fontSize: 10, lineSpacing: 1.4, color: PdfColors.grey800)),
                       ],
                     ),
                   ),
-                  
                   pw.SizedBox(width: 25),
-
-                  // Image
                   if (pdfImage != null)
                     pw.Expanded(
                       flex: 1,
@@ -159,12 +149,11 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
               ),
             ),
 
-            // --- CONTENU (BLOCS INDIVISIBLES) ---
-            
+            // CONTENU
             if (plant.safetyPrecautions != null || plant.sideEffects != null)
-              _pdfUnbreakableCard( // <-- Fonction Magique
+              _pdfUnbreakableCard(
                 "Précautions & Sécurité",
-                const pw.IconData(0xe002), // Warning Icon
+                const pw.IconData(0xe002), 
                 PdfColors.red700,
                 PdfColors.red50,
                 [
@@ -176,7 +165,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
             if (plant.usagePreparation != null || plant.usageDuration != null)
               _pdfUnbreakableCard(
                 "Mode d'emploi",
-                const pw.IconData(0xef48), // Medical Icon
+                const pw.IconData(0xef48), 
                 PdfColors.teal700,
                 PdfColors.teal50,
                 [
@@ -188,22 +177,24 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
             if (plant.descriptionVisual != null || plant.confusionRisks != null)
               _pdfUnbreakableCard(
                 "Identification",
-                const pw.IconData(0xe8f4), // Eye Icon
+                const pw.IconData(0xe8f4), 
                 PdfColors.blue700,
                 PdfColors.blue50,
                 [
                   if (plant.plantType != null) _pdfContentBlock("Type", plant.plantType!),
                   if (plant.descriptionVisual != null) _pdfContentBlock("Description visuelle", plant.descriptionVisual!),
                   
-                  if (plant.procurementPicking != null) _pdfDetailRow(const pw.IconData(0xea63), "Cueillette :", plant.procurementPicking!),
-                  if (plant.procurementBuying != null) _pdfDetailRow(const pw.IconData(0xf1cc), "Achat :", plant.procurementBuying!),
-                  if (plant.procurementCulture != null) _pdfDetailRow(const pw.IconData(0xea35), "Culture :", plant.procurementCulture!),
+                  if (plant.procurementPicking != null) 
+                    _pdfDetailRow(const pw.IconData(0xe406), "Cueillette :", plant.procurementPicking!),
+                  if (plant.procurementBuying != null) 
+                    _pdfDetailRow(const pw.IconData(0xe8cc), "Achat :", plant.procurementBuying!),
+                  if (plant.procurementCulture != null) 
+                    _pdfDetailRow(const pw.IconData(0xea35), "Culture :", plant.procurementCulture!),
 
                   if (plant.confusionRisks != null) 
                     pw.Container(
                       margin: const pw.EdgeInsets.only(top: 10),
                       padding: const pw.EdgeInsets.all(8),
-                      // Petite alerte interne
                       decoration: pw.BoxDecoration(color: PdfColors.orange50, borderRadius: pw.BorderRadius.circular(4), border: pw.Border.all(color: PdfColors.orange200)),
                       child: _pdfContentBlock("Ne pas confondre avec", plant.confusionRisks!, isWarning: true)
                     ),
@@ -213,7 +204,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
             if (plant.scientificReferences != null && plant.scientificReferences!.isNotEmpty)
               _pdfUnbreakableCard(
                 "Informations scientifiques",
-                const pw.IconData(0xea4d), // Science Icon
+                const pw.IconData(0xea4d), 
                 PdfColors.grey800,
                 PdfColors.grey100,
                 [
@@ -221,11 +212,10 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                 ]
               ),
 
-            // SOURCES
             if (_references.isNotEmpty)
               _pdfUnbreakableCard(
                 "Sources & Références", 
-                const pw.IconData(0xe865), // Book Icon
+                const pw.IconData(0xe865), 
                 PdfColors.grey800, 
                 PdfColors.white,
                 _references.map((ref) => pw.Padding(
@@ -259,23 +249,19 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
     );
   }
 
-  // --- WIDGET "UNBREAKABLE" (Anti-Coupure + Design App) ---
+  // --- WIDGETS PDF ---
   pw.Widget _pdfUnbreakableCard(String title, pw.IconData icon, PdfColor accentColor, PdfColor bgColor, List<pw.Widget> children) {
-    // On utilise pw.Wrap pour empêcher la coupure au milieu du bloc.
-    // Si le bloc ne rentre pas, Wrap le pousse entier à la page suivante.
     return pw.Wrap(
       children: [
         pw.Container(
           margin: const pw.EdgeInsets.only(bottom: 15),
           decoration: pw.BoxDecoration(
-            // BORDURE UNIFORME = COINS ARRONDIS AUTORISÉS (Plus de crash)
             border: pw.Border.all(color: accentColor, width: 1),
             borderRadius: pw.BorderRadius.circular(8),
             color: PdfColors.white,
           ),
           child: pw.Column(
             children: [
-              // EN-TÊTE COLORÉ (Avec coins arrondis haut)
               pw.Container(
                 padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: pw.BoxDecoration(
@@ -290,8 +276,6 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                   ]
                 ),
               ),
-              
-              // CORPS DU TEXTE
               pw.Padding(
                 padding: const pw.EdgeInsets.all(12),
                 child: pw.Column(
@@ -351,13 +335,12 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
   }
 
   // ==========================================
-  // BUILD FLUTTER (INTERFACE MOBILE) - INCHANGÉ
+  // BUILD FLUTTER UI
   // ==========================================
   @override
   Widget build(BuildContext context) {
     final plant = _displayPlant;
     final imageUrl = plant.image != null ? _api.getImageUrl(plant.image!) : null;
-
     final hasProcurement = (plant.procurementPicking != null && plant.procurementPicking!.isNotEmpty) ||
         (plant.procurementBuying != null && plant.procurementBuying!.isNotEmpty) ||
         (plant.procurementCulture != null && plant.procurementCulture!.isNotEmpty);
@@ -371,7 +354,11 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
             pinned: true,
             backgroundColor: AppTheme.teal1,
             actions: [
-              IconButton(icon: const Icon(Icons.print), tooltip: "Télécharger en PDF", onPressed: () => _generatePdf(context)),
+              IconButton(
+                icon: const Icon(Icons.print),
+                tooltip: "Télécharger en PDF",
+                onPressed: () => _generatePdf(context),
+              ),
               IconButton(icon: const Icon(Icons.share), onPressed: _sharePlant),
             ],
             flexibleSpace: FlexibleSpaceBar(
@@ -381,6 +368,10 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                   ? CachedNetworkImage(
                       imageUrl: imageUrl, fit: BoxFit.cover,
                       color: Colors.black26, colorBlendMode: BlendMode.darken,
+                      errorWidget: (context, url, error) => Container(
+                        color: AppTheme.teal1,
+                        child: const Center(child: Icon(Icons.local_florist, color: Colors.white54, size: 50)),
+                      ),
                     )
                   : Container(color: AppTheme.teal1),
             ),
@@ -554,6 +545,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                       ),
                     ),
 
+                  // Ici j'ai ajouté la condition _loadingRefs pour éviter l'erreur si c'est pas encore prêt
                   if (!_loadingRefs && _references.isNotEmpty) ...[
                     const SizedBox(height: 10),
                     Container(

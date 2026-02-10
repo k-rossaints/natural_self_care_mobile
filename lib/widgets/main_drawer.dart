@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../screens/about_screen.dart';
 import '../screens/methodology_screen.dart';
+import '../screens/offline_settings_screen.dart'; // <--- IMPORT
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -10,11 +11,9 @@ class MainDrawer extends StatelessWidget {
 
   const MainDrawer({super.key, required this.onTabChange});
 
-  // Fonction générique pour ouvrir n'importe quel lien
   Future<void> _launchURL(String urlString) async {
     final Uri url = Uri.parse(urlString);
     try {
-      // LaunchMode.externalApplication force l'ouverture dans le navigateur (Chrome/Safari)
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } catch (e) {
       print("Erreur ouverture lien: $e");
@@ -30,7 +29,6 @@ class MainDrawer extends StatelessWidget {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                // EN-TÊTE
                 DrawerHeader(
                   decoration: const BoxDecoration(color: AppTheme.teal1),
                   child: Column(
@@ -54,7 +52,6 @@ class MainDrawer extends StatelessWidget {
                   ),
                 ),
                 
-                // --- NAVIGATION PRINCIPALE ---
                 ListTile(
                   leading: const Icon(Icons.home_filled, color: AppTheme.teal1),
                   title: const Text('Accueil', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -90,7 +87,18 @@ class MainDrawer extends StatelessWidget {
 
                 const Divider(),
 
-                // --- PAGES D'INFO INTERNES ---
+                // --- NOUVEAU BOUTON HORS LIGNE ---
+                ListTile(
+                  leading: const Icon(Icons.download_for_offline, color: Colors.orange),
+                  title: const Text('Mode Hors Ligne', style: TextStyle(fontWeight: FontWeight.bold)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const OfflineSettingsScreen()));
+                  },
+                ),
+
+                const Divider(),
+
                 ListTile(
                   leading: const Icon(Icons.info_outline),
                   title: const Text('À propos'),
@@ -109,17 +117,13 @@ class MainDrawer extends StatelessWidget {
                 ),
 
                 const Divider(),
-
-                // --- LIENS EXTERNES & LÉGAUX (MIS À JOUR) ---
                 
-                // Facebook
                 ListTile(
                   leading: const Icon(Icons.facebook, color: Color(0xFF1877F2)),
                   title: const Text('Suivez-nous sur Facebook', style: TextStyle(fontWeight: FontWeight.w600)),
                   onTap: () => _launchURL('https://facebook.com/naturalselfcareweb'),
                 ),
 
-                // Politique de confidentialité (Lien temporaire)
                 ListTile(
                   leading: const Icon(Icons.privacy_tip_outlined, color: Colors.grey),
                   title: const Text('Politique de confidentialité', style: TextStyle(fontSize: 14)),
@@ -127,7 +131,6 @@ class MainDrawer extends StatelessWidget {
                   onTap: () => _launchURL('http://46.224.187.154.nip.io/confidentialite'),
                 ),
 
-                // Mentions légales (Lien temporaire)
                 ListTile(
                   leading: const Icon(Icons.gavel_outlined, color: Colors.grey),
                   title: const Text('Mentions légales', style: TextStyle(fontSize: 14)),
@@ -138,7 +141,6 @@ class MainDrawer extends StatelessWidget {
             ),
           ),
           
-          // PIED DE PAGE
           const Padding(
             padding: EdgeInsets.all(16.0),
             child: Text("v1.0.0 - ASC Genève", style: TextStyle(color: Colors.grey, fontSize: 12)),

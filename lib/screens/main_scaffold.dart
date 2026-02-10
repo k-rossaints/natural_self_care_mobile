@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../theme.dart';
-import 'home_screen.dart'; // <--- Importe l'accueil
+import 'home_screen.dart';
 import 'remedies_list_screen.dart';
 import 'symptoms_list_screen.dart';
 import 'problems_index_screen.dart';
 import '../widgets/main_drawer.dart';
+import '../widgets/offline_banner.dart'; // <--- 1. IMPORT DU FICHIER CRÉÉ
 
 class MainScaffold extends StatefulWidget {
   const MainScaffold({super.key});
@@ -15,9 +16,8 @@ class MainScaffold extends StatefulWidget {
 }
 
 class _MainScaffoldState extends State<MainScaffold> {
-  int _currentIndex = 0; // 0 = Accueil maintenant
+  int _currentIndex = 0;
 
-  // Fonction pour changer d'onglet (utilisée par Home et Drawer)
   void _goToTab(int index) {
     setState(() {
       _currentIndex = index;
@@ -26,12 +26,11 @@ class _MainScaffoldState extends State<MainScaffold> {
 
   @override
   Widget build(BuildContext context) {
-    // La liste des pages (l'ordre est important)
     final List<Widget> pages = [
-      HomeScreen(onTabChange: _goToTab), // 0: Accueil
-      const RemediesListScreen(),        // 1: Remèdes
-      const SymptomsListScreen(),        // 2: Chemins
-      const ProblemsIndexScreen(),       // 3: Problèmes
+      HomeScreen(onTabChange: _goToTab),
+      const RemediesListScreen(),
+      const SymptomsListScreen(),
+      const ProblemsIndexScreen(),
     ];
 
     return Scaffold(
@@ -57,17 +56,28 @@ class _MainScaffoldState extends State<MainScaffold> {
       
       drawer: MainDrawer(onTabChange: _goToTab),
 
-      body: IndexedStack(
-        index: _currentIndex,
-        children: pages,
+      // --- 2. MODIFICATION DE LA STRUCTURE DU BODY ---
+      body: Column(
+        children: [
+          // La banderole est insérée ici. Elle ne s'affichera que si le Wifi est coupé.
+          const OfflineBanner(),
+          
+          // Le contenu principal prend tout le reste de la place
+          Expanded(
+            child: IndexedStack(
+              index: _currentIndex,
+              children: pages,
+            ),
+          ),
+        ],
       ),
+      // -----------------------------------------------
       
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: _goToTab,
         backgroundColor: Colors.white,
         indicatorColor: AppTheme.teal1.withOpacity(0.15),
-        // On a maintenant 4 onglets, ce qui passe bien sur mobile
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
