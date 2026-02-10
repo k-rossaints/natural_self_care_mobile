@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:url_launcher/url_launcher.dart'; // <--- NOUVEL IMPORT
 import '../theme.dart';
 import '../services/api_service.dart';
 import '../models/plant.dart';
@@ -60,6 +61,16 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // --- Fonction pour ouvrir les liens partenaires ---
+  Future<void> _launchPartnerUrl(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    try {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      print("Erreur ouverture lien partenaire: $e");
+    }
+  }
+
   void _onSearchChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
 
@@ -81,7 +92,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final q = _removeDiacritics(query.toLowerCase());
 
-    // Recherche simple (contient le texte)
     final matchingPlants = _allPlants.where((p) {
       final name = _removeDiacritics(p.name.toLowerCase());
       final sci = _removeDiacritics((p.scientificName ?? '').toLowerCase());
@@ -125,9 +135,8 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // --- HEADER VERT COMPLET (Texte + Barre incluse) ---
+              // HEADER VERT COMPLET
               Container(
-                // Plus de hauteur fixe, il s'adapte au contenu + padding
                 padding: const EdgeInsets.fromLTRB(20, 60, 20, 40), 
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
@@ -154,9 +163,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: TextStyle(fontSize: 15, color: Colors.white.withOpacity(0.9), height: 1.4),
                     ),
                     
-                    const SizedBox(height: 30), // Espace entre texte et barre
+                    const SizedBox(height: 30),
                     
-                    // BARRE DE RECHERCHE (Directement dans le vert)
+                    // BARRE DE RECHERCHE
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -183,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              // LISTE DES RÉSULTATS (Apparaît juste en dessous du header vert si recherche active)
+              // RÉSULTATS DE RECHERCHE
               if (_isSearching && _searchController.text.length >= 3)
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -245,6 +254,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 40),
 
+              // PARTENAIRES (Mise à jour avec URLs)
               Center(child: Text("NOS PARTENAIRES", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey[400], letterSpacing: 1.5))),
               const SizedBox(height: 20),
               Padding(
@@ -252,11 +262,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Wrap(
                   spacing: 15, runSpacing: 15, alignment: WrapAlignment.center,
                   children: [
-                    _buildPartnerLogo('assets/partner1.jpg'),
-                    _buildPartnerLogo('assets/partner2.jpg'),
-                    _buildPartnerLogo('assets/partner3.jpg'),
-                    _buildPartnerLogo('assets/partner4.jpg'),
-                    _buildPartnerLogo('assets/partner5.jpg'),
+                    _buildPartnerLogo('assets/partner1.jpg', 'https://www.ox.ac.uk/'),
+                    _buildPartnerLogo('assets/partner2.jpg', 'https://www.ugb.sn/'),
+                    _buildPartnerLogo('assets/partner3.jpg', 'https://www.nybg.org/'),
+                    _buildPartnerLogo('assets/partner4.jpg', 'https://uog.edu.et/'),
+                    _buildPartnerLogo('assets/partner5.jpg', 'https://www.unige.ch/'),
                   ],
                 ),
               ),
@@ -295,7 +305,22 @@ class _HomeScreenState extends State<HomeScreen> {
     return Card(elevation: 4, shadowColor: color.withOpacity(0.2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(16), child: Padding(padding: const EdgeInsets.all(20), child: Row(children: [Container(width: 50, height: 50, decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle), child: Icon(icon, color: color, size: 28)), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: color)), const SizedBox(height: 4), Text(subtitle, style: TextStyle(fontSize: 13, color: Colors.grey[600]))])), Icon(Icons.chevron_right, color: Colors.grey[300])]))));
   }
   
-  Widget _buildPartnerLogo(String assetPath) {
-    return Container(padding: const EdgeInsets.all(8), width: 100, height: 60, decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(10)), child: Image.asset(assetPath, fit: BoxFit.contain));
+  // MODIFICATION ICI : On accepte l'URL et on utilise InkWell pour le clic
+  Widget _buildPartnerLogo(String assetPath, String url) {
+    return InkWell(
+      onTap: () => _launchPartnerUrl(url),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.all(8), 
+        width: 100, 
+        height: 60, 
+        decoration: BoxDecoration(
+          color: Colors.white, 
+          border: Border.all(color: Colors.grey.shade200), 
+          borderRadius: BorderRadius.circular(10)
+        ), 
+        child: Image.asset(assetPath, fit: BoxFit.contain)
+      ),
+    );
   }
 }
