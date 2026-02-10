@@ -390,17 +390,21 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
             flexibleSpace: FlexibleSpaceBar(
               title: Text(plant.name,
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, shadows: [Shadow(color: Colors.black45, blurRadius: 10)])),
-              background: imageUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: imageUrl, fit: BoxFit.cover,
-                      color: Colors.black26, colorBlendMode: BlendMode.darken,
-                      // IMAGE DE REMPLACEMENT SI HORS LIGNE
-                      errorWidget: (context, url, error) => Container(
-                        color: AppTheme.teal1,
-                        child: const Center(child: Icon(Icons.local_florist, color: Colors.white54, size: 50)),
-                      ),
-                    )
-                  : Container(color: AppTheme.teal1),
+              background: Hero(
+                // Le tag doit être IDENTIQUE à celui du HomeScreen
+                tag: 'plant-${plant.id}', 
+                child: imageUrl != null
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl, 
+                        fit: BoxFit.cover,
+                        color: Colors.black26, 
+                        colorBlendMode: BlendMode.darken,
+                        // Placeholder pour éviter un flash blanc pendant le chargement
+                        placeholder: (context, url) => Container(color: AppTheme.teal1),
+                        errorWidget: (context, url, error) => Container(color: AppTheme.teal1, child: const Icon(Icons.error)),
+                      )
+                    : Container(color: AppTheme.teal1),
+              ),
             ),
           ),
           SliverToBoxAdapter(
