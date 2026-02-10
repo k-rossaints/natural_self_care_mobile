@@ -47,4 +47,17 @@ class DecisionStep {
       recommendedPlants: extractedPlants,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'content': content,
+      'next_step_yes': nextStepYes,
+      'next_step_no': nextStepNo,
+      'is_emergency': isEmergency,
+      // On sauvegarde la liste des plantes directement sous forme simplifiée
+      'saved_plants': recommendedPlants.map((p) => p.toJson()).toList(),
+    };
+  }
 }

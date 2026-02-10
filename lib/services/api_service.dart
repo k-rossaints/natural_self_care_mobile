@@ -13,7 +13,7 @@ class ApiService {
 
   final Dio _dio = Dio(BaseOptions(
     baseUrl: baseUrl,
-    connectTimeout: const Duration(seconds: 5), // Réduit à 5s pour éviter de figer l'écran trop longtemps
+    connectTimeout: const Duration(seconds: 5),
     receiveTimeout: const Duration(seconds: 5),
   ));
 
@@ -21,7 +21,7 @@ class ApiService {
   factory ApiService() => _instance;
   ApiService._internal();
 
-  // --- 1. Méthode pour le téléchargement (Force le réseau) ---
+  // --- PLANTES ---
   Future<List<Plant>> getPlantsFromNetwork() async {
     final response = await _dio.get('/items/plants', queryParameters: {
       'fields': 'id,name,slug,scientific_name,common_names,habitat,image,plant_type,description_short,is_clinically_validated,safety_precautions,side_effects,usage_preparation,usage_duration,description_visual,procurement_picking,procurement_buying,procurement_culture,confusion_risks,scientific_references,linked_ailments.ailments_id.name',
@@ -31,98 +31,78 @@ class ApiService {
     return (response.data['data'] as List).map((json) => Plant.fromJson(json)).toList();
   }
 
-  // --- 2. Méthode Intelligente (Réseau ou Local) ---
   Future<List<Plant>> getPlants() async {
-    // Vérification rapide de la connexion
     var connectivityResult = await (Connectivity().checkConnectivity());
-    bool hasInternet = connectivityResult != ConnectivityResult.none;
-
-    if (hasInternet) {
-      try {
-        return await getPlantsFromNetwork();
-      } catch (e) {
-        print("⚠️ Erreur API, passage en mode hors ligne...");
-      }
+    if (connectivityResult != ConnectivityResult.none) {
+      try { return await getPlantsFromNetwork(); } catch (e) { print("⚠️ API Plantes HS, passage offline..."); }
     }
-
-    // Fallback : Lecture locale
-    print("📱 Lecture des données locales...");
-    final localPlants = await OfflineService().getLocalPlants();
-    if (localPlants.isNotEmpty) return localPlants;
-    
-    throw Exception("Aucune connexion et aucune donnée locale.");
+    final local = await OfflineService().getLocalPlants();
+    if (local.isNotEmpty) return local;
+    throw Exception("Pas de connexion et pas de plantes sauvegardées.");
   }
 
-  // --- 3. Détails d'une plante (C'est là que ça plantait) ---
   Future<Plant> getPlantDetails(int id) async {
     try {
-      // Tentative Online
       final response = await _dio.get('/items/plants/$id', queryParameters: {
         'fields': 'id,name,slug,scientific_name,common_names,habitat,image,plant_type,description_short,is_clinically_validated,safety_precautions,side_effects,usage_preparation,usage_duration,description_visual,procurement_picking,procurement_buying,procurement_culture,confusion_risks,scientific_references,linked_ailments.ailments_id.name',
       });
       return Plant.fromJson(response.data['data']);
     } catch (e) {
-      print("⚠️ Erreur détail plante (online), recherche locale...");
-      
-      // Tentative Offline (Sécurisée)
       try {
-        final localPlants = await OfflineService().getLocalPlants();
-        // On cherche la plante dans la liste téléchargée
-        final plant = localPlants.firstWhere((p) => p.id == id);
-        return plant;
-      } catch (notFound) {
-        print("❌ Plante introuvable en local : $notFound");
-        throw Exception("Plante non disponible hors ligne");
-      }
+        final local = await OfflineService().getLocalPlants();
+        return local.firstWhere((p) => p.id == id);
+      } catch (_) { throw Exception("Détail plante introuvable hors ligne"); }
     }
   }
 
-  // --- Le reste ne change pas ---
-  
-  String getImageUrl(String imageId) {
-    return '$baseUrl/assets/$imageId?width=600&quality=80&fit=cover';
+  // --- SYMPTÔMES & DÉCISIONS (NOUVEAU FALLBACK) ---
+
+  // 1. Réseau forcé (pour le téléchargement)
+  Future<List<Symptom>> getSymptomsFromNetwork() async {
+    final response = await _dio.get('/items/symptoms', queryParameters: {
+      'fields': 'id,name,description,additional_info,start_step',
+      'sort': 'name',
+      'limit': -1,
+    });
+    return (response.data['data'] as List).map((json) => Symptom.fromJson(json)).toList();
   }
 
-  Future<List<Reference>> getReferences(int plantId) async {
-    try {
-      final response = await _dio.get('/items/references', queryParameters: {
-        'filter[plant][_eq]': plantId,
-        'fields': 'id,full_reference',
-      });
-      return (response.data['data'] as List).map((json) => Reference.fromJson(json)).toList();
-    } catch (e) {
-      return [];
-    }
+  Future<List<DecisionStep>> getDecisionStepsFromNetwork() async {
+    final response = await _dio.get('/items/decision_steps', queryParameters: {
+      'fields': 'id,type,content,next_step_yes,next_step_no,is_emergency,recommended_remedies.plants_id.id,recommended_remedies.plants_id.name,recommended_remedies.plants_id.slug,recommended_remedies.plants_id.image,recommended_remedies.plants_id.is_clinically_validated',
+      'limit': -1,
+    });
+    return (response.data['data'] as List).map((json) => DecisionStep.fromJson(json)).toList();
   }
 
+  // 2. Méthode intelligente (Appelée par l'appli)
   Future<List<Symptom>> getSymptoms() async {
-    try {
-      final response = await _dio.get('/items/symptoms', queryParameters: {
-        'fields': 'id,name,description,additional_info,start_step',
-        'sort': 'name',
-      });
-      return (response.data['data'] as List).map((json) => Symptom.fromJson(json)).toList();
-    } catch (e) {
-      rethrow;
+    var connectivityResult = await (Connectivity().checkConnectivity());
+    if (connectivityResult != ConnectivityResult.none) {
+      try { return await getSymptomsFromNetwork(); } catch (e) { print("⚠️ API Symptômes HS, passage offline..."); }
     }
+    final local = await OfflineService().getLocalSymptoms();
+    if (local.isNotEmpty) return local;
+    throw Exception("Pas de connexion et pas de symptômes sauvegardés.");
   }
 
   Future<List<DecisionStep>> getDecisionSteps() async {
-    try {
-      final response = await _dio.get('/items/decision_steps', queryParameters: {
-        'fields': 'id,type,content,next_step_yes,next_step_no,is_emergency,recommended_remedies.plants_id.id,recommended_remedies.plants_id.name,recommended_remedies.plants_id.slug,recommended_remedies.plants_id.image,recommended_remedies.plants_id.is_clinically_validated',
-        'limit': -1,
-      });
-      return (response.data['data'] as List).map((json) => DecisionStep.fromJson(json)).toList();
-    } catch (e) {
-      rethrow;
+    var connectivityResult = await (Connectivity().checkConnectivity());
+    if (connectivityResult != ConnectivityResult.none) {
+      try { return await getDecisionStepsFromNetwork(); } catch (e) { print("⚠️ API Steps HS, passage offline..."); }
     }
+    final local = await OfflineService().getLocalDecisionSteps();
+    if (local.isNotEmpty) return local;
+    throw Exception("Pas de connexion et pas de parcours sauvegardés.");
   }
+
+  // --- AUTRES (Pas de offline pour l'instant) ---
+  String getImageUrl(String imageId) => '$baseUrl/assets/$imageId?width=600&quality=80&fit=cover';
   
-  Future<List<GenericReference>> getGenericReferences() async {
+  Future<List<Reference>> getReferences(int plantId) async {
     try {
-      final response = await _dio.get('/items/generic_references', queryParameters: {'fields': 'id,name', 'sort': 'name', 'limit': -1});
-      return (response.data['data'] as List).map((json) => GenericReference.fromJson(json)).toList();
+      final response = await _dio.get('/items/references', queryParameters: {'filter[plant][_eq]': plantId, 'fields': 'id,full_reference'});
+      return (response.data['data'] as List).map((json) => Reference.fromJson(json)).toList();
     } catch (e) { return []; }
   }
   
@@ -130,6 +110,13 @@ class ApiService {
     try {
       final response = await _dio.get('/items/references', queryParameters: {'fields': 'id,full_reference,plant.name', 'sort': 'plant.name', 'limit': -1});
       return (response.data['data'] as List).map((json) => Reference.fromJson(json)).toList();
+    } catch (e) { return []; }
+  }
+
+  Future<List<GenericReference>> getGenericReferences() async {
+    try {
+      final response = await _dio.get('/items/generic_references', queryParameters: {'fields': 'id,name', 'sort': 'name', 'limit': -1});
+      return (response.data['data'] as List).map((json) => GenericReference.fromJson(json)).toList();
     } catch (e) { return []; }
   }
 

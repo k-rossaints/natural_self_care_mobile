@@ -22,4 +22,14 @@ class Symptom {
       startStepId: json['start_step'],
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'additional_info': additionalInfo,
+      'start_step': startStepId,
+    };
+  }
 }

@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart'; // <--- NOUVEL IMPORT
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../models/plant.dart';
 import '../models/decision_step.dart';
 import '../models/symptom.dart';
@@ -11,12 +11,15 @@ class OfflineService {
   factory OfflineService() => _instance;
   OfflineService._internal();
 
-  // Clés
+  // Clés de stockage
   static const String KEY_PLANTS = 'offline_plants';
   static const String KEY_SYMPTOMS = 'offline_symptoms';
   static const String KEY_STEPS = 'offline_steps';
   static const String KEY_SAVE_IMAGES = 'offline_settings_images';
-  static const String KEY_LAST_SYNC = 'offline_last_sync';
+  
+  // NOUVEAU : Clés pour les dates séparées
+  static const String KEY_DATE_PLANTS = 'offline_date_plants';
+  static const String KEY_DATE_PATHS = 'offline_date_paths';
 
   // --- 1. Gestion des Réglages ---
 
@@ -30,63 +33,69 @@ class OfflineService {
     return prefs.getBool(KEY_SAVE_IMAGES) ?? false; 
   }
 
-  Future<void> _updateSyncDate() async {
-    final prefs = await SharedPreferences.getInstance();
+  // Helper pour avoir la date actuelle formatée
+  String _getCurrentDate() {
     final now = DateTime.now();
-    // Format simple : JJ/MM/AAAA HH:MM
-    String formattedDate = "${now.day.toString().padLeft(2,'0')}/${now.month.toString().padLeft(2,'0')}/${now.year} ${now.hour}:${now.minute.toString().padLeft(2,'0')}";
-    await prefs.setString(KEY_LAST_SYNC, formattedDate);
+    return "${now.day.toString().padLeft(2,'0')}/${now.month.toString().padLeft(2,'0')}/${now.year} ${now.hour}:${now.minute.toString().padLeft(2,'0')}";
   }
 
-  Future<String?> getLastSyncDate() async {
+  // Récupérer les dates pour l'affichage
+  Future<Map<String, String?>> getSyncDates() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(KEY_LAST_SYNC);
+    return {
+      'plants': prefs.getString(KEY_DATE_PLANTS),
+      'paths': prefs.getString(KEY_DATE_PATHS),
+    };
   }
 
-  // --- 2. Sauvegarde (Le gros morceau) ---
+  // --- 2. Sauvegarde ---
 
   Future<void> downloadPlants() async {
     final api = ApiService(); 
+    final plants = await api.getPlantsFromNetwork();
     
-    // 1. On récupère les données fraîches depuis le réseau
-    // (Assure-toi que getPlantsFromNetwork existe dans api_service, sinon utilise getPlants)
-    final plants = await api.getPlantsFromNetwork(); 
-    
-    // 2. On sauvegarde le texte (JSON)
     final prefs = await SharedPreferences.getInstance();
-    final jsonString = jsonEncode(plants.map((p) => p.toJson()).toList());
-    await prefs.setString(KEY_PLANTS, jsonString);
-    await _updateSyncDate();
+    await prefs.setString(KEY_PLANTS, jsonEncode(plants.map((p) => p.toJson()).toList()));
+    
+    // On met à jour SEULEMENT la date des plantes
+    await prefs.setString(KEY_DATE_PLANTS, _getCurrentDate());
 
-    // 3. GESTION DES IMAGES (C'est ici que ça se joue)
     if (await shouldSaveImages()) {
-      print("📸 Option Images ACTIVE : Téléchargement en cours...");
+      print("📸 Téléchargement images plantes...");
       for (var plant in plants) {
         if (plant.image != null) {
           try {
-            final url = api.getImageUrl(plant.image!);
-            // On force le téléchargement du fichier dans le cache du téléphone
-            await DefaultCacheManager().downloadFile(url);
-          } catch (e) {
-            print("Erreur téléchargement image ${plant.name}: $e");
-          }
+            await DefaultCacheManager().downloadFile(api.getImageUrl(plant.image!));
+          } catch (e) { print("Err img ${plant.name}: $e"); }
         }
       }
-    } else {
-      print("⏩ Option Images DÉSACTIVÉE : On ne télécharge rien.");
     }
   }
 
   Future<void> downloadDecisionPaths() async {
     final api = ApiService();
-    final symptoms = await api.getSymptoms(); // Assure-toi que ces méthodes existent dans ApiService
-    final steps = await api.getDecisionSteps();
+    final symptoms = await api.getSymptomsFromNetwork();
+    final steps = await api.getDecisionStepsFromNetwork();
 
     final prefs = await SharedPreferences.getInstance();
-    // On suppose que tu as ajouté toJson() dans Symptom et DecisionStep aussi
-    // Si ce n'est pas le cas, commente ces deux lignes pour l'instant
-    // await prefs.setString(KEY_SYMPTOMS, jsonEncode(symptoms.map((s) => s.toJson()).toList()));
-    // await prefs.setString(KEY_STEPS, jsonEncode(steps.map((s) => s.toJson()).toList()));
+    await prefs.setString(KEY_SYMPTOMS, jsonEncode(symptoms.map((s) => s.toJson()).toList()));
+    await prefs.setString(KEY_STEPS, jsonEncode(steps.map((s) => s.toJson()).toList()));
+    
+    // On met à jour SEULEMENT la date des chemins
+    await prefs.setString(KEY_DATE_PATHS, _getCurrentDate());
+
+    if (await shouldSaveImages()) {
+      print("📸 Téléchargement images parcours...");
+      for (var step in steps) {
+        for (var plant in step.recommendedPlants) {
+          if (plant.image != null) {
+            try {
+              await DefaultCacheManager().downloadFile(api.getImageUrl(plant.image!));
+            } catch (e) { print("Err img parcours: $e"); }
+          }
+        }
+      }
+    }
   }
 
   // --- 3. Lecture ---
@@ -95,8 +104,21 @@ class OfflineService {
     final prefs = await SharedPreferences.getInstance();
     final data = prefs.getString(KEY_PLANTS);
     if (data == null) return [];
-    final List<dynamic> decodedData = jsonDecode(data);
-    return decodedData.map((json) => Plant.fromJson(json)).toList();
+    return (jsonDecode(data) as List).map((json) => Plant.fromJson(json)).toList();
+  }
+
+  Future<List<Symptom>> getLocalSymptoms() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString(KEY_SYMPTOMS);
+    if (data == null) return [];
+    return (jsonDecode(data) as List).map((json) => Symptom.fromJson(json)).toList();
+  }
+
+  Future<List<DecisionStep>> getLocalDecisionSteps() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString(KEY_STEPS);
+    if (data == null) return [];
+    return (jsonDecode(data) as List).map((json) => DecisionStep.fromJson(json)).toList();
   }
 
   // --- 4. Nettoyage ---
@@ -106,9 +128,10 @@ class OfflineService {
     await prefs.remove(KEY_PLANTS);
     await prefs.remove(KEY_SYMPTOMS);
     await prefs.remove(KEY_STEPS);
-    await prefs.remove(KEY_LAST_SYNC);
     
-    // On vide aussi le cache des images pour libérer la place
+    await prefs.remove(KEY_DATE_PLANTS);
+    await prefs.remove(KEY_DATE_PATHS);
+    
     await DefaultCacheManager().emptyCache();
     print("🗑️ Données locales et cache images supprimés.");
   }

@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import '../models/plant.dart';
 import '../models/reference.dart';
 import '../services/api_service.dart';
+import '../services/offline_service.dart'; // N'oublie pas cet import pour le mode hors ligne
 import '../theme.dart';
 
 class PlantDetailScreen extends StatefulWidget {
@@ -25,7 +26,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
   late Plant _displayPlant;
   List<Reference> _references = [];
   bool _loadingDetails = true;
-  bool _loadingRefs = true; // <--- C'EST CA QUI MANQUAIT !
+  bool _loadingRefs = true; 
 
   @override
   void initState() {
@@ -37,6 +38,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
 
   Future<void> _loadFullDetails() async {
     try {
+      // 1. Tentative de chargement via Internet
       final fullPlant = await _api.getPlantDetails(widget.plant.id);
       if (mounted) {
         setState(() {
@@ -45,8 +47,26 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
         });
       }
     } catch (e) {
-      print("Info: Impossible de charger plus de détails ($e)");
-      if (mounted) setState(() => _loadingDetails = false);
+      print("Info: Impossible de charger détails depuis l'API ($e)");
+      
+      // 2. FALLBACK HORS LIGNE : On cherche dans la base locale
+      try {
+        final localPlants = await OfflineService().getLocalPlants();
+        // On cherche la plante correspondante par son ID dans la liste complète
+        final fullLocalPlant = localPlants.firstWhere((p) => p.id == widget.plant.id);
+        
+        if (mounted) {
+          setState(() {
+            _displayPlant = fullLocalPlant; // On met à jour avec les infos locales complètes
+            _loadingDetails = false;
+          });
+          print("✅ Détails chargés depuis la sauvegarde locale !");
+        }
+      } catch (notFound) {
+        // La plante n'est pas dans la sauvegarde
+        print("Plante non trouvée en local.");
+        if (mounted) setState(() => _loadingDetails = false);
+      }
     }
   }
 
@@ -55,7 +75,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
     if (mounted) {
       setState(() {
         _references = refs;
-        _loadingRefs = false; // On met à jour l'état ici
+        _loadingRefs = false;
       });
     }
   }
@@ -65,17 +85,19 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
   }
 
   // ==========================================
-  // GÉNÉRATION DU PDF
+  // GÉNÉRATION DU PDF (VERSION FINALE STABLE)
   // ==========================================
   Future<void> _generatePdf(BuildContext context) async {
     final pdf = pw.Document();
     final plant = _displayPlant;
 
+    // 1. Polices
     final fontRegular = await PdfGoogleFonts.openSansRegular();
     final fontBold = await PdfGoogleFonts.openSansBold();
     final fontItalic = await PdfGoogleFonts.openSansItalic();
     final iconFont = await PdfGoogleFonts.materialIcons();
 
+    // 2. Image
     pw.MemoryImage? pdfImage;
     if (plant.image != null) {
       try {
@@ -102,7 +124,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
         
         build: (pw.Context context) {
           return [
-            // EN-TÊTE
+            // --- EN-TÊTE ---
             pw.Container(
               padding: const pw.EdgeInsets.only(bottom: 20),
               margin: const pw.EdgeInsets.only(bottom: 20),
@@ -149,7 +171,8 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
               ),
             ),
 
-            // CONTENU
+            // --- CONTENU (BLOCKS) ---
+            
             if (plant.safetyPrecautions != null || plant.sideEffects != null)
               _pdfUnbreakableCard(
                 "Précautions & Sécurité",
@@ -184,12 +207,15 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                   if (plant.plantType != null) _pdfContentBlock("Type", plant.plantType!),
                   if (plant.descriptionVisual != null) _pdfContentBlock("Description visuelle", plant.descriptionVisual!),
                   
+                  // --- ICONES STANDARDS (Safe) ---
                   if (plant.procurementPicking != null) 
-                    _pdfDetailRow(const pw.IconData(0xe406), "Cueillette :", plant.procurementPicking!),
+                    _pdfDetailRow(const pw.IconData(0xe406), "Cueillette :", plant.procurementPicking!), // Icons.nature
+                  
                   if (plant.procurementBuying != null) 
-                    _pdfDetailRow(const pw.IconData(0xe8cc), "Achat :", plant.procurementBuying!),
+                    _pdfDetailRow(const pw.IconData(0xe8cc), "Achat :", plant.procurementBuying!), // Icons.shopping_cart
+                  
                   if (plant.procurementCulture != null) 
-                    _pdfDetailRow(const pw.IconData(0xea35), "Culture :", plant.procurementCulture!),
+                    _pdfDetailRow(const pw.IconData(0xe3d3), "Culture :", plant.procurementCulture!), // Icons.filter_vintage (Fleur/Plante - très compatible)
 
                   if (plant.confusionRisks != null) 
                     pw.Container(
@@ -249,7 +275,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
     );
   }
 
-  // --- WIDGETS PDF ---
+  // --- WIDGETS PDF HELPERS ---
   pw.Widget _pdfUnbreakableCard(String title, pw.IconData icon, PdfColor accentColor, PdfColor bgColor, List<pw.Widget> children) {
     return pw.Wrap(
       children: [
@@ -335,7 +361,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
   }
 
   // ==========================================
-  // BUILD FLUTTER UI
+  // BUILD FLUTTER UI (ECRAN)
   // ==========================================
   @override
   Widget build(BuildContext context) {
@@ -368,6 +394,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                   ? CachedNetworkImage(
                       imageUrl: imageUrl, fit: BoxFit.cover,
                       color: Colors.black26, colorBlendMode: BlendMode.darken,
+                      // IMAGE DE REMPLACEMENT SI HORS LIGNE
                       errorWidget: (context, url, error) => Container(
                         color: AppTheme.teal1,
                         child: const Center(child: Icon(Icons.local_florist, color: Colors.white54, size: 50)),
@@ -545,7 +572,6 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                       ),
                     ),
 
-                  // Ici j'ai ajouté la condition _loadingRefs pour éviter l'erreur si c'est pas encore prêt
                   if (!_loadingRefs && _references.isNotEmpty) ...[
                     const SizedBox(height: 10),
                     Container(

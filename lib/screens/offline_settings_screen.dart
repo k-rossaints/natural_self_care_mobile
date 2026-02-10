@@ -14,7 +14,10 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
   
   bool _saveImages = false;
   bool _isDownloading = false;
-  String? _lastSync;
+  String _statusMessage = "";
+  
+  String? _datePlants;
+  String? _datePaths;
 
   @override
   void initState() {
@@ -24,29 +27,43 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
 
   Future<void> _loadSettings() async {
     final saveImg = await _offlineService.shouldSaveImages();
-    final lastSync = await _offlineService.getLastSyncDate();
+    final dates = await _offlineService.getSyncDates();
     if (mounted) {
       setState(() {
         _saveImages = saveImg;
-        _lastSync = lastSync;
+        _datePlants = dates['plants'];
+        _datePaths = dates['paths'];
       });
     }
   }
 
-  Future<void> _startDownload() async {
-    setState(() => _isDownloading = true);
+  Future<void> _startDownload({required bool downloadPlants, required bool downloadPaths}) async {
+    setState(() {
+      _isDownloading = true;
+      _statusMessage = "Connexion au serveur...";
+    });
     
     try {
-      // On lance le téléchargement des plantes
-      await _offlineService.downloadPlants();
+      if (downloadPlants) {
+        setState(() => _statusMessage = "Téléchargement des plantes...");
+        await _offlineService.downloadPlants();
+      }
       
-      // On recharge la date de synchro
-      final lastSync = await _offlineService.getLastSyncDate();
+      if (downloadPaths) {
+        setState(() => _statusMessage = "Téléchargement des parcours...");
+        await _offlineService.downloadDecisionPaths();
+      }
+      
+      // Recharger les dates après téléchargement
+      final dates = await _offlineService.getSyncDates();
       
       if (mounted) {
-        setState(() => _lastSync = lastSync);
+        setState(() {
+          _datePlants = dates['plants'];
+          _datePaths = dates['paths'];
+        });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Plantes téléchargées avec succès !"), backgroundColor: AppTheme.teal1),
+          const SnackBar(content: Text("Téléchargement terminé avec succès !"), backgroundColor: AppTheme.teal1),
         );
       }
     } catch (e) {
@@ -56,7 +73,12 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
         );
       }
     } finally {
-      if (mounted) setState(() => _isDownloading = false);
+      if (mounted) {
+        setState(() {
+          _isDownloading = false;
+          _statusMessage = "";
+        });
+      }
     }
   }
 
@@ -73,7 +95,7 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
           ),
           const SizedBox(height: 30),
 
-          // --- OPTION IMAGES ---
+          // --- OPTIONS ---
           const Text("OPTIONS", style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.teal1)),
           SwitchListTile(
             title: const Text("Sauvegarder les images"),
@@ -88,30 +110,35 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
           
           const Divider(height: 40),
 
-          // --- TÉLÉCHARGEMENT ---
-          const Text("CONTENU", style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.teal1)),
+          // --- CONTENU ---
+          const Text("CONTENU À TÉLÉCHARGER", style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.teal1)),
           const SizedBox(height: 10),
           
-          Card(
-            elevation: 0,
-            color: Colors.grey.shade50,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
-            child: ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                child: const Icon(Icons.local_florist, color: AppTheme.teal1),
-              ),
-              title: const Text("Base de données Plantes", style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: _lastSync != null ? Text("Dernière synchro : $_lastSync") : const Text("Jamais synchronisé"),
-              trailing: _isDownloading 
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : IconButton(
-                    icon: const Icon(Icons.download_rounded, color: AppTheme.teal1),
-                    onPressed: _startDownload,
-                  ),
-            ),
+          // Carte Plantes
+          _buildDownloadButton(
+            title: "Base de données Plantes",
+            icon: Icons.local_florist,
+            lastSync: _datePlants,
+            onTap: () => _startDownload(downloadPlants: true, downloadPaths: false),
           ),
+
+          const SizedBox(height: 10),
+
+          // Carte Parcours
+          _buildDownloadButton(
+            title: "Chemins de décision",
+            icon: Icons.alt_route,
+            lastSync: _datePaths,
+            onTap: () => _startDownload(downloadPlants: false, downloadPaths: true),
+          ),
+
+          const SizedBox(height: 20),
+          
+          if (_isDownloading) ...[
+            const LinearProgressIndicator(color: AppTheme.teal1),
+            const SizedBox(height: 10),
+            Center(child: Text(_statusMessage, style: const TextStyle(color: AppTheme.teal1, fontWeight: FontWeight.bold))),
+          ],
 
           const SizedBox(height: 40),
           
@@ -122,11 +149,48 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
             style: OutlinedButton.styleFrom(side: const BorderSide(color: AppTheme.danger)),
             onPressed: () async {
               await _offlineService.clearAllData();
-              setState(() => _lastSync = null);
+              setState(() {
+                _datePlants = null;
+                _datePaths = null;
+              });
               if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Données supprimées")));
             },
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDownloadButton({required String title, required IconData icon, required String? lastSync, required VoidCallback onTap}) {
+    bool isSynced = lastSync != null;
+    return Card(
+      elevation: 0,
+      color: Colors.grey.shade50,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+          child: Icon(icon, color: AppTheme.teal1),
+        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        // NOUVEAU : On affiche la date spécifique ici
+        subtitle: Row(
+          children: [
+            Icon(isSynced ? Icons.check_circle : Icons.info_outline, size: 12, color: isSynced ? Colors.green : Colors.grey),
+            const SizedBox(width: 4),
+            Text(
+              isSynced ? "Synchro : $lastSync" : "Non téléchargé",
+              style: TextStyle(fontSize: 12, color: isSynced ? Colors.green : Colors.grey),
+            ),
+          ],
+        ),
+        trailing: _isDownloading 
+          ? null 
+          : IconButton(
+              icon: const Icon(Icons.download_rounded, color: AppTheme.teal1),
+              onPressed: onTap,
+            ),
       ),
     );
   }
