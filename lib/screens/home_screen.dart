@@ -74,7 +74,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onSearchChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
 
-    if (query.trim().length < 3) {
+    // Si on efface tout, on cache immédiatement les résultats sans attendre le timer
+    if (query.trim().isEmpty) {
       setState(() {
         _searchResults = [];
         _isSearching = false;
@@ -82,8 +83,11 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    _debounce = Timer(const Duration(milliseconds: 500), () {
-      _performSearch(query);
+    // On attend 300ms (plus rapide que 500ms pour une sensation SPA)
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      if (query.trim().length >= 3) {
+        _performSearch(query);
+      }
     });
   }
 
@@ -278,24 +282,55 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildResultItem(dynamic result) {
+    Widget _buildResultItem(dynamic result) {
+    // On crée un ID unique pour l'animation Hero
+    final String heroTag = result is Plant ? 'plant-${result.id}' : 'symptom-${result.id}';
+
     if (result is Plant) {
       return ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(8)), child: result.image != null ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(_api.getImageUrl(result.image!), fit: BoxFit.cover)) : const Icon(Icons.local_florist, size: 20, color: Colors.grey)),
+        leading: Hero(
+          tag: heroTag, // L'image va "voler" vers la page suivante
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: result.image != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(_api.getImageUrl(result.image!), fit: BoxFit.cover),
+                  )
+                : const Icon(Icons.local_florist, size: 20, color: Colors.grey),
+          ),
+        ),
         title: Text(result.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
         subtitle: const Text("Plante", style: TextStyle(fontSize: 12, color: AppTheme.teal1)),
         trailing: const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PlantDetailScreen(plant: result))),
+        onTap: () {
+          _searchFocus.unfocus(); // On ferme le clavier AVANT de partir
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => PlantDetailScreen(plant: result)),
+          );
+        },
       );
     } else if (result is Symptom) {
       return ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(20)), child: const Icon(Icons.alt_route, size: 20, color: Colors.blue)),
+        leading: const Icon(Icons.alt_route, size: 20, color: Colors.blue),
         title: Text(result.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
         subtitle: const Text("Diagnostic interactif", style: TextStyle(fontSize: 12, color: Colors.blue)),
         trailing: const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => DecisionSessionScreen(symptom: result))),
+        onTap: () {
+          _searchFocus.unfocus();
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => DecisionSessionScreen(symptom: result)),
+          );
+        },
       );
     }
     return const SizedBox();
