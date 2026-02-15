@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
+
 import '../models/plant.dart';
 import '../models/symptom.dart';
 import '../models/decision_step.dart';
@@ -7,6 +9,15 @@ import '../models/reference.dart';
 import '../models/generic_reference.dart';
 import '../models/pending_reference.dart';
 import 'offline_service.dart';
+
+// --- FONCTIONS TOP-LEVEL POUR LES ISOLATES ---
+List<Plant> _parsePlants(dynamic data) => (data as List).map((json) => Plant.fromJson(json)).toList();
+List<Symptom> _parseSymptoms(dynamic data) => (data as List).map((json) => Symptom.fromJson(json)).toList();
+List<DecisionStep> _parseDecisionSteps(dynamic data) => (data as List).map((json) => DecisionStep.fromJson(json)).toList();
+List<Reference> _parseReferences(dynamic data) => (data as List).map((json) => Reference.fromJson(json)).toList();
+List<GenericReference> _parseGenericReferences(dynamic data) => (data as List).map((json) => GenericReference.fromJson(json)).toList();
+List<PendingReference> _parsePendingReferences(dynamic data) => (data as List).map((json) => PendingReference.fromJson(json)).toList();
+
 
 class ApiService {
   static const String baseUrl = 'http://directus-rk4w4cskcos4kwwoc84s88ss.46.224.187.154.sslip.io';
@@ -28,14 +39,18 @@ class ApiService {
       'sort': 'name',
       'limit': -1,
     });
-    return (response.data['data'] as List).map((json) => Plant.fromJson(json)).toList();
+    return compute(_parsePlants, response.data['data']);
   }
 
   Future<List<Plant>> getPlants() async {
-    var connectivityResult = await (Connectivity().checkConnectivity());
-    if (connectivityResult != ConnectivityResult.none) {
+    // CORRECTION : connectivityResult est maintenant une List<ConnectivityResult>
+    final connectivityResult = await (Connectivity().checkConnectivity());
+
+    // Si la liste ne contient PAS 'none', alors on a une connexion
+    if (!connectivityResult.contains(ConnectivityResult.none)) {
       try { return await getPlantsFromNetwork(); } catch (e) { print("⚠️ API Plantes HS, passage offline..."); }
     }
+
     final local = await OfflineService().getLocalPlants();
     if (local.isNotEmpty) return local;
     throw Exception("Pas de connexion et pas de plantes sauvegardées.");
@@ -55,16 +70,15 @@ class ApiService {
     }
   }
 
-  // --- SYMPTÔMES & DÉCISIONS (NOUVEAU FALLBACK) ---
+  // --- SYMPTÔMES & DÉCISIONS ---
 
-  // 1. Réseau forcé (pour le téléchargement)
   Future<List<Symptom>> getSymptomsFromNetwork() async {
     final response = await _dio.get('/items/symptoms', queryParameters: {
       'fields': 'id,name,description,additional_info,start_step',
       'sort': 'name',
       'limit': -1,
     });
-    return (response.data['data'] as List).map((json) => Symptom.fromJson(json)).toList();
+    return compute(_parseSymptoms, response.data['data']);
   }
 
   Future<List<DecisionStep>> getDecisionStepsFromNetwork() async {
@@ -72,58 +86,61 @@ class ApiService {
       'fields': 'id,type,content,next_step_yes,next_step_no,is_emergency,recommended_remedies.plants_id.id,recommended_remedies.plants_id.name,recommended_remedies.plants_id.slug,recommended_remedies.plants_id.image,recommended_remedies.plants_id.is_clinically_validated',
       'limit': -1,
     });
-    return (response.data['data'] as List).map((json) => DecisionStep.fromJson(json)).toList();
+    return compute(_parseDecisionSteps, response.data['data']);
   }
 
-  // 2. Méthode intelligente (Appelée par l'appli)
   Future<List<Symptom>> getSymptoms() async {
-    var connectivityResult = await (Connectivity().checkConnectivity());
-    if (connectivityResult != ConnectivityResult.none) {
+    final connectivityResult = await (Connectivity().checkConnectivity());
+
+    if (!connectivityResult.contains(ConnectivityResult.none)) {
       try { return await getSymptomsFromNetwork(); } catch (e) { print("⚠️ API Symptômes HS, passage offline..."); }
     }
+
     final local = await OfflineService().getLocalSymptoms();
     if (local.isNotEmpty) return local;
     throw Exception("Pas de connexion et pas de symptômes sauvegardés.");
   }
 
   Future<List<DecisionStep>> getDecisionSteps() async {
-    var connectivityResult = await (Connectivity().checkConnectivity());
-    if (connectivityResult != ConnectivityResult.none) {
+    final connectivityResult = await (Connectivity().checkConnectivity());
+
+    if (!connectivityResult.contains(ConnectivityResult.none)) {
       try { return await getDecisionStepsFromNetwork(); } catch (e) { print("⚠️ API Steps HS, passage offline..."); }
     }
+
     final local = await OfflineService().getLocalDecisionSteps();
     if (local.isNotEmpty) return local;
     throw Exception("Pas de connexion et pas de parcours sauvegardés.");
   }
 
-  // --- AUTRES (Pas de offline pour l'instant) ---
+  // --- AUTRES ---
   String getImageUrl(String imageId) => '$baseUrl/assets/$imageId?width=600&quality=80&fit=cover';
-  
+
   Future<List<Reference>> getReferences(int plantId) async {
     try {
       final response = await _dio.get('/items/references', queryParameters: {'filter[plant][_eq]': plantId, 'fields': 'id,full_reference'});
-      return (response.data['data'] as List).map((json) => Reference.fromJson(json)).toList();
+      return compute(_parseReferences, response.data['data']);
     } catch (e) { return []; }
   }
-  
+
   Future<List<Reference>> getAllReferences() async {
     try {
       final response = await _dio.get('/items/references', queryParameters: {'fields': 'id,full_reference,plant.name', 'sort': 'plant.name', 'limit': -1});
-      return (response.data['data'] as List).map((json) => Reference.fromJson(json)).toList();
+      return compute(_parseReferences, response.data['data']);
     } catch (e) { return []; }
   }
 
   Future<List<GenericReference>> getGenericReferences() async {
     try {
       final response = await _dio.get('/items/generic_references', queryParameters: {'fields': 'id,name', 'sort': 'name', 'limit': -1});
-      return (response.data['data'] as List).map((json) => GenericReference.fromJson(json)).toList();
+      return compute(_parseGenericReferences, response.data['data']);
     } catch (e) { return []; }
   }
 
   Future<List<PendingReference>> getPendingReferences() async {
     try {
       final response = await _dio.get('/items/pending_references', queryParameters: {'fields': 'id,topic,claim,scientific_data', 'sort': 'id', 'limit': -1});
-      return (response.data['data'] as List).map((json) => PendingReference.fromJson(json)).toList();
+      return compute(_parsePendingReferences, response.data['data']);
     } catch (e) { return []; }
   }
 }

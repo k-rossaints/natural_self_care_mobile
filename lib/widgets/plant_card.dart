@@ -17,14 +17,15 @@ class PlantCard extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
-      decoration: BoxDecoration(
+      // OPTIMISATION 1 : Le design de la carte est maintenant constant en mémoire (0 recalcul)
+      decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.all(Radius.circular(20)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Color(0x0F000000), // Équivalent exact à Colors.black.withOpacity(0.06)
             blurRadius: 15,
-            offset: const Offset(0, 5),
+            offset: Offset(0, 5),
           ),
         ],
       ),
@@ -48,13 +49,13 @@ class PlantCard extends StatelessWidget {
                         ? CachedNetworkImage(
                             imageUrl: imageUrl,
                             fit: BoxFit.cover,
+                            // OPTIMISATION 2 : Limite la taille de l'image chargée dans la RAM
+                            memCacheHeight: 400,
                             placeholder: (context, url) => const Center(child: Icon(Icons.image, color: Colors.black12)),
                             errorWidget: (context, url, error) => const Center(child: Icon(Icons.broken_image, color: Colors.black12)),
                           )
                         : const Center(child: Icon(Icons.local_florist, size: 40, color: Colors.black12)),
                   ),
-                  
-                  // J'AI SUPPRIMÉ LE BADGE "VALIDÉ" ICI
                 ],
               ),
 

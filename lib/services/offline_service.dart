@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:cached_network_image/cached_network_image.dart'; // NOUVEL IMPORT POUR LE CACHE
 import '../models/plant.dart';
 import '../models/decision_step.dart';
 import '../models/symptom.dart';
@@ -16,7 +17,7 @@ class OfflineService {
   static const String KEY_SYMPTOMS = 'offline_symptoms';
   static const String KEY_STEPS = 'offline_steps';
   static const String KEY_SAVE_IMAGES = 'offline_settings_images';
-  
+
   // NOUVEAU : Clés pour les dates séparées
   static const String KEY_DATE_PLANTS = 'offline_date_plants';
   static const String KEY_DATE_PATHS = 'offline_date_paths';
@@ -30,7 +31,7 @@ class OfflineService {
 
   Future<bool> shouldSaveImages() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(KEY_SAVE_IMAGES) ?? false; 
+    return prefs.getBool(KEY_SAVE_IMAGES) ?? false;
   }
 
   // Helper pour avoir la date actuelle formatée
@@ -51,12 +52,12 @@ class OfflineService {
   // --- 2. Sauvegarde ---
 
   Future<void> downloadPlants() async {
-    final api = ApiService(); 
+    final api = ApiService();
     final plants = await api.getPlantsFromNetwork();
-    
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(KEY_PLANTS, jsonEncode(plants.map((p) => p.toJson()).toList()));
-    
+
     // On met à jour SEULEMENT la date des plantes
     await prefs.setString(KEY_DATE_PLANTS, _getCurrentDate());
 
@@ -65,7 +66,10 @@ class OfflineService {
       for (var plant in plants) {
         if (plant.image != null) {
           try {
-            await DefaultCacheManager().downloadFile(api.getImageUrl(plant.image!));
+            // CORRECTION DU CACHE ICI
+            final imageUrl = api.getImageUrl(plant.image!);
+            await CachedNetworkImageProvider(imageUrl).evict();
+            await DefaultCacheManager().downloadFile(imageUrl);
           } catch (e) { print("Err img ${plant.name}: $e"); }
         }
       }
@@ -80,7 +84,7 @@ class OfflineService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(KEY_SYMPTOMS, jsonEncode(symptoms.map((s) => s.toJson()).toList()));
     await prefs.setString(KEY_STEPS, jsonEncode(steps.map((s) => s.toJson()).toList()));
-    
+
     // On met à jour SEULEMENT la date des chemins
     await prefs.setString(KEY_DATE_PATHS, _getCurrentDate());
 
@@ -90,7 +94,10 @@ class OfflineService {
         for (var plant in step.recommendedPlants) {
           if (plant.image != null) {
             try {
-              await DefaultCacheManager().downloadFile(api.getImageUrl(plant.image!));
+              // CORRECTION DU CACHE ICI
+              final imageUrl = api.getImageUrl(plant.image!);
+              await CachedNetworkImageProvider(imageUrl).evict();
+              await DefaultCacheManager().downloadFile(imageUrl);
             } catch (e) { print("Err img parcours: $e"); }
           }
         }
