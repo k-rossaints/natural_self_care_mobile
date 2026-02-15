@@ -83,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    // On attend 300ms (plus rapide que 500ms pour une sensation SPA)
+    // On attend 300ms 
     _debounce = Timer(const Duration(milliseconds: 300), () {
       if (query.trim().length >= 3) {
         _performSearch(query);
