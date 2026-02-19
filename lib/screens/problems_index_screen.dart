@@ -181,24 +181,31 @@ class _ProblemsIndexScreenState extends State<ProblemsIndexScreen> {
                                   // Liste des plantes
                                   ...relatedPlants.map((plant) => ListTile(
                                     contentPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
-                                    leading: Container(
-                                      width: 40, height: 40,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: Colors.grey.shade100,
-                                        image: plant.image != null 
-                                          ? DecorationImage(
-                                              image: CachedNetworkImageProvider(_api.getImageUrl(plant.image!)),
-                                              fit: BoxFit.cover
-                                            )
-                                          : null,
+                                    leading: Hero(
+                                      tag: 'plant-${plant.id}', // Tag identique au detail screen
+                                      child: Container(
+                                        width: 40, 
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Colors.grey.shade100,
+                                          image: plant.image != null 
+                                            ? DecorationImage(
+                                                image: CachedNetworkImageProvider(_api.getImageUrl(plant.image!)),
+                                                fit: BoxFit.cover
+                                              )
+                                            : null,
+                                        ),
+                                        child: plant.image == null 
+                                            ? const Icon(Icons.local_florist, size: 20, color: Colors.grey) 
+                                            : null,
                                       ),
-                                      child: plant.image == null ? const Icon(Icons.local_florist, size: 20, color: Colors.grey) : null,
                                     ),
                                     title: Text(plant.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                                     subtitle: Text(plant.scientificName ?? '', style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 12)),
                                     trailing: const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
                                     onTap: () {
+                                      FocusScope.of(context).unfocus(); // Ferme le clavier si ouvert
                                       Navigator.push(context, MaterialPageRoute(builder: (context) => PlantDetailScreen(plant: plant)));
                                     },
                                   )),
