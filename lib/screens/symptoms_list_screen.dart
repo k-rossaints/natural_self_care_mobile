@@ -1,0 +1,143 @@
+import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/symptom.dart';
+import '../providers/symptoms_provider.dart';
+import '../utils/string_utils.dart';
+import '../theme.dart';
+import '../widgets/skeleton_loader.dart';
+import '../widgets/error_view.dart';
+import 'decision_session_screen.dart';
+
+class SymptomsListScreen extends ConsumerStatefulWidget {
+  const SymptomsListScreen({super.key});
+
+  @override
+  ConsumerState<SymptomsListScreen> createState() => _SymptomsListScreenState();
+}
+
+class _SymptomsListScreenState extends ConsumerState<SymptomsListScreen> {
+  List<Symptom> _filteredSymptoms = [];
+  String _searchQuery = '';
+  Timer? _debounce;
+  bool _initialized = false;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _runFilter(List<Symptom> allSymptoms, String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      final q = removeDiacritics(query.toLowerCase());
+      if (mounted) {
+        setState(() {
+          _searchQuery = query;
+          _filteredSymptoms = allSymptoms.where((s) {
+            return removeDiacritics(s.name.toLowerCase()).contains(q);
+          }).toList();
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final symptomsAsync = ref.watch(symptomsProvider);
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text('Chemins de décision', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        elevation: 0,
+        foregroundColor: AppTheme.textDark,
+      ),
+      body: symptomsAsync.when(
+        loading: () => const ListSkeleton(count: 7),
+        error: (e, _) => ErrorView(
+          isOffline: true,
+          onRetry: () => ref.refresh(symptomsProvider),
+        ),
+        data: (symptoms) {
+          if (!_initialized) {
+            _initialized = true;
+            _filteredSymptoms = symptoms;
+          }
+
+          return Column(
+            children: [
+              Container(
+                color: Theme.of(context).colorScheme.surface,
+                padding: const EdgeInsets.all(16),
+                child: TextField(
+                  onChanged: (val) => _runFilter(symptoms, val),
+                  decoration: InputDecoration(
+                    hintText: "Rechercher un symptôme...",
+                    hintStyle: TextStyle(color: Colors.grey.shade400),
+                    prefixIcon: const Icon(Icons.search, color: AppTheme.teal1),
+                    filled: true,
+                    fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2A2A) : const Color(0xFFF1F5F9),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: _filteredSymptoms.isEmpty
+                    ? Center(child: Text("Aucun résultat", style: TextStyle(color: Colors.grey.shade500)))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _filteredSymptoms.length,
+                        itemBuilder: (context, index) {
+                          final symptom = _filteredSymptoms[index];
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFFE2E8F0))),
+                            child: InkWell(
+                              onTap: () {
+                                FocusScope.of(context).unfocus();
+                                Navigator.push(context, MaterialPageRoute(fullscreenDialog: true, builder: (context) => DecisionSessionScreen(symptom: symptom)));
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(color: Colors.blue.shade50, shape: BoxShape.circle),
+                                      child: Icon(Icons.alt_route, color: Colors.blue.shade700, size: 20),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(symptom.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                                          if (symptom.description != null) ...[
+                                            const SizedBox(height: 4),
+                                            Text(symptom.description!, style: const TextStyle(color: AppTheme.textGrey, fontSize: 13, height: 1.4)),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                    const Icon(Icons.chevron_right, color: Colors.grey),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
