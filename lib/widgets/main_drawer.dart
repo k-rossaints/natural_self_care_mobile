@@ -16,7 +16,7 @@ class MainDrawer extends StatelessWidget {
     try {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } catch (e) {
-      print("Erreur ouverture lien: $e");
+      debugPrint("Erreur ouverture lien: $e");
     }
   }
 

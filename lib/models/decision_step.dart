@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'plant.dart';
 
 class DecisionStep {
@@ -31,7 +32,7 @@ class DecisionStep {
           try {
             extractedPlants.add(Plant.fromJson(item['plants_id']));
           } catch (e) {
-            print("Erreur parsing plante dans step: $e");
+            debugPrint("Erreur parsing plante dans step: $e");
           }
         }
       }

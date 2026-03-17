@@ -1,123 +1,92 @@
 import 'package:flutter/material.dart';
-import 'dart:async'; 
+import 'dart:async';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/symptom.dart';
-import '../services/api_service.dart';
+import '../providers/symptoms_provider.dart';
+import '../utils/string_utils.dart';
 import '../theme.dart';
+import '../widgets/skeleton_loader.dart';
+import '../widgets/error_view.dart';
 import 'decision_session_screen.dart';
 
-class SymptomsListScreen extends StatefulWidget {
+class SymptomsListScreen extends ConsumerStatefulWidget {
   const SymptomsListScreen({super.key});
 
   @override
-  State<SymptomsListScreen> createState() => _SymptomsListScreenState();
+  ConsumerState<SymptomsListScreen> createState() => _SymptomsListScreenState();
 }
 
-class _SymptomsListScreenState extends State<SymptomsListScreen> {
-  final ApiService _api = ApiService();
-  
-  List<Symptom> _allSymptoms = [];
+class _SymptomsListScreenState extends ConsumerState<SymptomsListScreen> {
   List<Symptom> _filteredSymptoms = [];
-  
-  bool _isLoading = true;
   String _searchQuery = '';
-  
-  // Timer pour éviter de surcharger le processeur ---
-  Timer? _debounce; 
+  Timer? _debounce;
+  bool _initialized = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadSymptoms();
-  }
-
-  //on trash le timer quand on quitte l'écran 
   @override
   void dispose() {
-    _debounce?.cancel(); 
+    _debounce?.cancel();
     super.dispose();
   }
 
-  Future<void> _loadSymptoms() async {
-    try {
-      final data = await _api.getSymptoms();
-      if (mounted) {
-        setState(() {
-          _allSymptoms = data;
-          _filteredSymptoms = data;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  //Debounce
-  void _runFilter(String query) {
-    // Si l'utilisateur tape une lettre, on annule le compte à rebours précédent
+  void _runFilter(List<Symptom> allSymptoms, String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
-
-    // 300ms
     _debounce = Timer(const Duration(milliseconds: 300), () {
-      final q = _removeDiacritics(query.toLowerCase());
+      final q = removeDiacritics(query.toLowerCase());
       if (mounted) {
         setState(() {
           _searchQuery = query;
-          _filteredSymptoms = _allSymptoms.where((s) {
-            return _removeDiacritics(s.name.toLowerCase()).contains(q);
+          _filteredSymptoms = allSymptoms.where((s) {
+            return removeDiacritics(s.name.toLowerCase()).contains(q);
           }).toList();
         });
       }
     });
   }
 
-  String _removeDiacritics(String str) {
-    var withDia = 'ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž';
-    var withoutDia = 'AAAAAAaaaaaaOOOOOOOooooooEEEEeeeeeCcDIIIIiiiiUUUUuuuuNnSsYyyZz';
-    for (int i = 0; i < withDia.length; i++) {
-      str = str.replaceAll(withDia[i], withoutDia[i]);
-    }
-    return str;
-  }
-
   @override
   Widget build(BuildContext context) {
+    final symptomsAsync = ref.watch(symptomsProvider);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Chemins de décision', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         foregroundColor: AppTheme.textDark,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.teal1))
-          : Column(
-              children: [
-                // Search bar
-                Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.all(16),
-                  child: TextField(
-                    onChanged: _runFilter,
-                    decoration: InputDecoration(
-                      hintText: "Rechercher un symptôme...",
-                      hintStyle: TextStyle(color: Colors.grey.shade400),
-                      prefixIcon: const Icon(Icons.search, color: AppTheme.teal1),
-                      filled: true,
-                      fillColor: const Color(0xFFF1F5F9), 
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
+      body: symptomsAsync.when(
+        loading: () => const ListSkeleton(count: 7),
+        error: (e, _) => ErrorView(
+          isOffline: true,
+          onRetry: () => ref.refresh(symptomsProvider),
+        ),
+        data: (symptoms) {
+          if (!_initialized) {
+            _initialized = true;
+            _filteredSymptoms = symptoms;
+          }
+
+          return Column(
+            children: [
+              Container(
+                color: Theme.of(context).colorScheme.surface,
+                padding: const EdgeInsets.all(16),
+                child: TextField(
+                  onChanged: (val) => _runFilter(symptoms, val),
+                  decoration: InputDecoration(
+                    hintText: "Rechercher un symptôme...",
+                    hintStyle: TextStyle(color: Colors.grey.shade400),
+                    prefixIcon: const Icon(Icons.search, color: AppTheme.teal1),
+                    filled: true,
+                    fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2A2A) : const Color(0xFFF1F5F9),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                 ),
-
-                // Liste
-                Expanded(
-                  child: _filteredSymptoms.isEmpty 
+              ),
+              Expanded(
+                child: _filteredSymptoms.isEmpty
                     ? Center(child: Text("Aucun résultat", style: TextStyle(color: Colors.grey.shade500)))
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
@@ -127,22 +96,11 @@ class _SymptomsListScreenState extends State<SymptomsListScreen> {
                           return Card(
                             margin: const EdgeInsets.only(bottom: 16),
                             elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: const BorderSide(color: Color(0xFFE2E8F0)),
-                            ),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Color(0xFFE2E8F0))),
                             child: InkWell(
                               onTap: () {
-                                // fermeture automatique du clavier
-                                FocusScope.of(context).unfocus(); 
-
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    fullscreenDialog: true,
-                                    builder: (context) => DecisionSessionScreen(symptom: symptom),
-                                  ),
-                                );
+                                FocusScope.of(context).unfocus();
+                                Navigator.push(context, MaterialPageRoute(fullscreenDialog: true, builder: (context) => DecisionSessionScreen(symptom: symptom)));
                               },
                               borderRadius: BorderRadius.circular(12),
                               child: Padding(
@@ -159,16 +117,10 @@ class _SymptomsListScreenState extends State<SymptomsListScreen> {
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            symptom.name,
-                                            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textDark),
-                                          ),
+                                          Text(symptom.name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
                                           if (symptom.description != null) ...[
                                             const SizedBox(height: 4),
-                                            Text(
-                                              symptom.description!,
-                                              style: const TextStyle(color: AppTheme.textGrey, fontSize: 13, height: 1.4),
-                                            ),
+                                            Text(symptom.description!, style: const TextStyle(color: AppTheme.textGrey, fontSize: 13, height: 1.4)),
                                           ],
                                         ],
                                       ),
@@ -181,9 +133,11 @@ class _SymptomsListScreenState extends State<SymptomsListScreen> {
                           );
                         },
                       ),
-                ),
-              ],
-            ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

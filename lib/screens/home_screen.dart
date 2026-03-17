@@ -1,41 +1,35 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:url_launcher/url_launcher.dart'; // <--- NOUVEL IMPORT
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../utils/string_utils.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../theme.dart';
 import '../services/api_service.dart';
 import '../models/plant.dart';
 import '../models/symptom.dart';
+import '../providers/plants_provider.dart';
+import '../providers/symptoms_provider.dart';
 import 'plant_detail_screen.dart';
 import 'decision_session_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   final Function(int) onTabChange;
 
   const HomeScreen({super.key, required this.onTabChange});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   final ApiService _api = ApiService();
-  
-  List<Plant> _allPlants = [];
-  List<Symptom> _allSymptoms = [];
-  
+
   List<dynamic> _searchResults = [];
   bool _isSearching = false;
-  bool _dataLoaded = false;
-  
+
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
   Timer? _debounce;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
 
   @override
   void dispose() {
@@ -45,90 +39,54 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  Future<void> _loadData() async {
-    try {
-      final plants = await _api.getPlants();
-      final symptoms = await _api.getSymptoms();
-      if (mounted) {
-        setState(() {
-          _allPlants = plants;
-          _allSymptoms = symptoms;
-          _dataLoaded = true;
-        });
-      }
-    } catch (e) {
-      print("Erreur chargement background: $e");
-    }
-  }
-
-  // --- Fonction pour ouvrir les liens partenaires ---
   Future<void> _launchPartnerUrl(String urlString) async {
     final Uri url = Uri.parse(urlString);
     try {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } catch (e) {
-      print("Erreur ouverture lien partenaire: $e");
+      debugPrint("Erreur ouverture lien partenaire: $e");
     }
   }
 
-  void _onSearchChanged(String query) {
+  void _onSearchChanged(String query, List<Plant> plants, List<Symptom> symptoms) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
-
-    // Si on efface tout, on cache immédiatement les résultats sans attendre le timer
     if (query.trim().isEmpty) {
-      setState(() {
-        _searchResults = [];
-        _isSearching = false;
-      });
+      setState(() { _searchResults = []; _isSearching = false; });
       return;
     }
-
-    // On attend 300ms 
     _debounce = Timer(const Duration(milliseconds: 300), () {
-      if (query.trim().length >= 3) {
-        _performSearch(query);
-      }
+      if (query.trim().length >= 3) _performSearch(query, plants, symptoms);
     });
   }
 
-  void _performSearch(String query) {
-    if (!_dataLoaded) return;
-
-    final q = _removeDiacritics(query.toLowerCase());
-
-    final matchingPlants = _allPlants.where((p) {
-      final name = _removeDiacritics(p.name.toLowerCase());
-      final sci = _removeDiacritics((p.scientificName ?? '').toLowerCase());
+  void _performSearch(String query, List<Plant> plants, List<Symptom> symptoms) {
+    final q = removeDiacritics(query.toLowerCase());
+    final matchingPlants = plants.where((p) {
+      final name = removeDiacritics(p.name.toLowerCase());
+      final sci = removeDiacritics((p.scientificName ?? '').toLowerCase());
       bool match = name.contains(q) || sci.contains(q);
-      if (!match) {
-        match = p.ailments.any((a) => _removeDiacritics(a.toLowerCase()).contains(q));
-      }
+      if (!match) match = p.ailments.any((a) => removeDiacritics(a.toLowerCase()).contains(q));
       return match;
     }).toList();
-
-    final matchingSymptoms = _allSymptoms.where((s) {
-      final name = _removeDiacritics(s.name.toLowerCase());
-      final desc = _removeDiacritics((s.description ?? '').toLowerCase());
+    final matchingSymptoms = symptoms.where((s) {
+      final name = removeDiacritics(s.name.toLowerCase());
+      final desc = removeDiacritics((s.description ?? '').toLowerCase());
       return name.contains(q) || desc.contains(q);
     }).toList();
-
     setState(() {
       _searchResults = [...matchingSymptoms, ...matchingPlants];
       _isSearching = true;
     });
   }
-
-  String _removeDiacritics(String str) {
-    var withDia = 'ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž';
-    var withoutDia = 'AAAAAAaaaaaaOOOOOOOooooooEEEEeeeeeCcDIIIIiiiiUUUUuuuuNnSsYyyZz';
-    for (int i = 0; i < withDia.length; i++) {
-      str = str.replaceAll(withDia[i], withoutDia[i]);
-    }
-    return str;
-  }
-
   @override
   Widget build(BuildContext context) {
+    final plantsAsync = ref.watch(plantsProvider);
+    final symptomsAsync = ref.watch(symptomsProvider);
+
+    // On récupère les données des providers (listes vides si pas encore chargé)
+    final plants = plantsAsync.asData?.value ?? [];
+    final symptoms = symptomsAsync.asData?.value ?? [];
+
     return Scaffold(
       body: GestureDetector(
         onTap: () {
@@ -141,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               // HEADER VERT COMPLET
               Container(
-                padding: const EdgeInsets.fromLTRB(20, 60, 20, 40), 
+                padding: const EdgeInsets.fromLTRB(20, 60, 20, 40),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -166,26 +124,26 @@ class _HomeScreenState extends State<HomeScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 15, color: Colors.white.withOpacity(0.9), height: 1.4),
                     ),
-                    
+
                     const SizedBox(height: 30),
-                    
+
                     // BARRE DE RECHERCHE
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(30),
                         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 15, offset: const Offset(0, 8))],
                       ),
                       child: TextField(
                         controller: _searchController,
                         focusNode: _searchFocus,
-                        onChanged: _onSearchChanged,
+                        onChanged: (val) => _onSearchChanged(val, plants, symptoms),
                         decoration: InputDecoration(
                           hintText: "Rechercher une plante, un mal...",
                           hintStyle: TextStyle(color: Colors.grey.shade400),
                           prefixIcon: const Icon(Icons.search, color: AppTheme.teal1),
-                          suffixIcon: _searchController.text.isNotEmpty 
-                            ? IconButton(icon: const Icon(Icons.close, color: Colors.grey), onPressed: () { _searchController.clear(); _onSearchChanged(''); FocusScope.of(context).unfocus(); })
+                          suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(icon: const Icon(Icons.close, color: Colors.grey), onPressed: () { _searchController.clear(); _onSearchChanged('', plants, symptoms); FocusScope.of(context).unfocus(); })
                             : null,
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -202,14 +160,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   constraints: const BoxConstraints(maxHeight: 350),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 15, offset: const Offset(0, 5))],
-                    border: Border.all(color: Colors.grey.shade200),
+                    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
-                    child: _searchResults.isEmpty 
+                    child: _searchResults.isEmpty
                       ? const Padding(padding: EdgeInsets.all(20), child: Text("Aucun résultat trouvé.", style: TextStyle(color: Colors.grey)))
                       : ListView.separated(
                           padding: EdgeInsets.zero,
@@ -284,7 +242,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     Widget _buildResultItem(dynamic result) {
     // On crée un ID unique pour l'animation Hero
-    final String heroTag = result is Plant ? 'plant-${result.id}' : 'symptom-${result.id}';
+    final String heroTag = result is Plant ? 'home-plant-${result.id}' : 'home-symptom-${result.id}';
 
     if (result is Plant) {
       return ListTile(
@@ -313,7 +271,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _searchFocus.unfocus(); // On ferme le clavier AVANT de partir
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => PlantDetailScreen(plant: result)),
+            MaterialPageRoute(builder: (context) => PlantDetailScreen(plant: result, heroTag: 'home-plant-${result.id}')),
           );
         },
       );
@@ -339,19 +297,19 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildNavCard({required IconData icon, required String title, required String subtitle, required Color color, required VoidCallback onTap}) {
     return Card(elevation: 4, shadowColor: color.withOpacity(0.2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(16), child: Padding(padding: const EdgeInsets.all(20), child: Row(children: [Container(width: 50, height: 50, decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle), child: Icon(icon, color: color, size: 28)), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: color)), const SizedBox(height: 4), Text(subtitle, style: TextStyle(fontSize: 13, color: Colors.grey[600]))])), Icon(Icons.chevron_right, color: Colors.grey[300])]))));
   }
-  
+
   // MODIFICATION ICI : On accepte l'URL et on utilise InkWell pour le clic
   Widget _buildPartnerLogo(String assetPath, String url) {
     return InkWell(
       onTap: () => _launchPartnerUrl(url),
       borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: const EdgeInsets.all(8), 
-        width: 100, 
-        height: 60, 
+        padding: const EdgeInsets.all(8),
+        width: 100,
+        height: 60,
         decoration: BoxDecoration(
-          color: Colors.white, 
-          border: Border.all(color: Colors.grey.shade200), 
+          color: Theme.of(context).colorScheme.surface,
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
           borderRadius: BorderRadius.circular(10)
         ), 
         child: Image.asset(assetPath, fit: BoxFit.contain)

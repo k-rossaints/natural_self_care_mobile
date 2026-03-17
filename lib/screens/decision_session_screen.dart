@@ -43,9 +43,9 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
   }
 
   Future<void> _loadData() async {
+    if (mounted) setState(() => _isLoading = true);
     try {
       final steps = await _api.getDecisionSteps();
-      
       setState(() {
         _allSteps = steps;
         if (widget.symptom.startStepId != null) {
@@ -53,12 +53,12 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
             (step) => step.id == widget.symptom.startStepId,
             orElse: () => steps.first,
           );
-          _calculateFutureQuestions(); 
+          _calculateFutureQuestions();
         }
         _isLoading = false;
       });
     } catch (e) {
-      print("Erreur chargement steps: $e");
+      debugPrint("Erreur chargement steps: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -74,25 +74,25 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
     final Set<String> collectedContents = {};
     final List<int> queue = [];
     final Set<int> visited = {};
-    
+
     if (_currentStep!.nextStepYes != null) queue.add(_currentStep!.nextStepYes!);
     if (_currentStep!.nextStepNo != null) queue.add(_currentStep!.nextStepNo!);
 
     int iterations = 0;
     // MODIFICATION ICI : On passe la limite à 50 pour être sûr de tout prendre
-    const int limit = 50; 
+    const int limit = 50;
     const int maxIter = 100;
 
     while (queue.isNotEmpty && iterations < maxIter) {
       iterations++;
       final id = queue.removeAt(0);
-      
+
       if (visited.contains(id)) continue;
       visited.add(id);
 
       try {
         final step = _allSteps.firstWhere((s) => s.id == id);
-        
+
         if (step.type == 'question') {
           if (!collectedContents.contains(step.content)) {
             collectedContents.add(step.content);
@@ -107,12 +107,12 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
       } catch (e) {
         // Step introuvable
       }
-      
+
       if (collectedContents.length >= limit) break;
     }
 
     final List<String> result = collectedContents.toList();
-    
+
     if (result.length > limit) {
       _futureQuestions = result.sublist(0, limit);
       _hasMoreFuture = true;
@@ -134,12 +134,12 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
         try {
           _currentStep = _allSteps.firstWhere((step) => step.id == nextId);
         } catch (e) {
-          _currentStep = null; 
+          _currentStep = null;
         }
       } else {
         _currentStep = null;
       }
-      
+
       _calculateFutureQuestions();
     });
 
@@ -179,8 +179,12 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
     setState(() {
       _history.clear();
       if (widget.symptom.startStepId != null) {
-        _currentStep = _allSteps.firstWhere((s) => s.id == widget.symptom.startStepId);
-        _calculateFutureQuestions();
+        try {
+          _currentStep = _allSteps.firstWhere((s) => s.id == widget.symptom.startStepId);
+          _calculateFutureQuestions();
+        } catch (e) {
+          debugPrint("Step de départ introuvable: $e");
+        }
       }
     });
   }
@@ -195,12 +199,39 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
         elevation: 0,
         foregroundColor: AppTheme.textDark,
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), tooltip: "Recommencer", onPressed: _restart),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: _allSteps.isEmpty ? "Recharger" : "Recommencer",
+            onPressed: _allSteps.isEmpty ? _loadData : _restart,
+          ),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
+          : _allSteps.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.wifi_off_rounded, size: 64, color: Colors.grey.shade400),
+                        const SizedBox(height: 16),
+                        const Text("Pas de connexion", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        Text("Les chemins de décision ne sont pas disponibles.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade600)),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: _loadData,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text("Réessayer"),
+                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.teal1, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : ListView(
               controller: _scrollController,
               padding: const EdgeInsets.all(20),
               children: [
@@ -233,7 +264,7 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
                   _buildCurrentStepCard(_currentStep!)
                 else if (_history.isNotEmpty)
                   const Padding(padding: EdgeInsets.all(20), child: Center(child: Text("Fin du parcours."))),
-                  
+
                 const SizedBox(height: 40),
               ],
             ),
@@ -326,7 +357,7 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
               children: [
                 if (isQuestion)
                   Text("Question ${_history.length + 1}", style: const TextStyle(color: AppTheme.teal1, fontWeight: FontWeight.bold, letterSpacing: 1))
-                else 
+                else
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -335,9 +366,9 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
                       Text(isEmergency ? "Attention requise" : "Recommandation", style: TextStyle(color: isEmergency ? AppTheme.danger : AppTheme.teal2, fontWeight: FontWeight.bold, fontSize: 16)),
                     ],
                   ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 Text(step.content, textAlign: TextAlign.center, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, height: 1.4, color: AppTheme.textDark)),
 
                 const SizedBox(height: 24),
@@ -364,7 +395,7 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
                           ),
                         ],
                       ),
-                      
+
                       // --- SECTION QUESTIONS FUTURES ---
                       if (_futureQuestions.isNotEmpty) ...[
                         const SizedBox(height: 24),
@@ -374,11 +405,11 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
                           alignment: Alignment.centerLeft,
                           // CORRECTION ICI : .toUpperCase() au lieu de uppercase: true
                           child: Text(
-                            "Questions suivantes possibles :".toUpperCase(), 
+                            "Questions suivantes possibles :".toUpperCase(),
                             style: const TextStyle(
-                              fontSize: 12, 
-                              fontWeight: FontWeight.bold, 
-                              color: Colors.grey, 
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
                               letterSpacing: 0.5
                             ),
                           ),
@@ -423,7 +454,7 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
                       ),
                     ],
                   ),
-                  
+
                   if (_history.isNotEmpty && isQuestion)
                     Padding(
                       padding: const EdgeInsets.only(top: 16),
@@ -448,7 +479,7 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
       child: Material(
         color: Colors.transparent, borderRadius: BorderRadius.circular(12), clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PlantDetailScreen(plant: plant))),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PlantDetailScreen(plant: plant, heroTag: 'decision-plant-${plant.id}'))),
           child: Padding(
             padding: const EdgeInsets.all(10),
             child: Row(

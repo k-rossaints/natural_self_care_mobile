@@ -19,4 +19,11 @@ class PendingReference {
       scientificData: json['scientific_data'] ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'topic': topic,
+    'claim': claim,
+    'scientific_data': scientificData,
+  };
 }

@@ -10,11 +10,13 @@ import '../models/reference.dart';
 import '../services/api_service.dart';
 import '../services/offline_service.dart'; // N'oublie pas cet import pour le mode hors ligne
 import '../theme.dart';
+import '../widgets/expandable_text.dart';
 
 class PlantDetailScreen extends StatefulWidget {
   final Plant plant;
+  final String? heroTag;
 
-  const PlantDetailScreen({super.key, required this.plant});
+  const PlantDetailScreen({super.key, required this.plant, this.heroTag});
 
   @override
   State<PlantDetailScreen> createState() => _PlantDetailScreenState();
@@ -22,11 +24,11 @@ class PlantDetailScreen extends StatefulWidget {
 
 class _PlantDetailScreenState extends State<PlantDetailScreen> {
   final ApiService _api = ApiService();
-  
+
   late Plant _displayPlant;
   List<Reference> _references = [];
   bool _loadingDetails = true;
-  bool _loadingRefs = true; 
+  bool _loadingRefs = true;
 
   @override
   void initState() {
@@ -47,24 +49,24 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
         });
       }
     } catch (e) {
-      print("Info: Impossible de charger détails depuis l'API ($e)");
-      
+      debugPrint("Info: Impossible de charger détails depuis l'API ($e)");
+
       // 2. FALLBACK HORS LIGNE : On cherche dans la base locale
       try {
         final localPlants = await OfflineService().getLocalPlants();
         // On cherche la plante correspondante par son ID dans la liste complète
         final fullLocalPlant = localPlants.firstWhere((p) => p.id == widget.plant.id);
-        
+
         if (mounted) {
           setState(() {
             _displayPlant = fullLocalPlant; // On met à jour avec les infos locales complètes
             _loadingDetails = false;
           });
-          print("✅ Détails chargés depuis la sauvegarde locale !");
+          debugPrint("✅ Détails chargés depuis la sauvegarde locale !");
         }
       } catch (notFound) {
         // La plante n'est pas dans la sauvegarde
-        print("Plante non trouvée en local.");
+        debugPrint("Plante non trouvée en local.");
         if (mounted) setState(() => _loadingDetails = false);
       }
     }
@@ -107,7 +109,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
           pdfImage = pw.MemoryImage(response.bodyBytes);
         }
       } catch (e) {
-        print("Erreur image PDF: $e");
+        debugPrint("Erreur image PDF: $e");
       }
     }
 
@@ -121,7 +123,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
           icons: iconFont,
         ),
         margin: const pw.EdgeInsets.symmetric(horizontal: 40, vertical: 30),
-        
+
         build: (pw.Context context) {
           return [
             // --- EN-TÊTE ---
@@ -160,7 +162,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                     pw.Expanded(
                       flex: 1,
                       child: pw.Container(
-                        height: 140, 
+                        height: 140,
                         decoration: pw.BoxDecoration(
                           borderRadius: pw.BorderRadius.circular(8),
                           image: pw.DecorationImage(image: pdfImage, fit: pw.BoxFit.cover),
@@ -172,11 +174,11 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
             ),
 
             // --- CONTENU (BLOCKS) ---
-            
+
             if (plant.safetyPrecautions != null || plant.sideEffects != null)
               _pdfUnbreakableCard(
                 "Précautions & Sécurité",
-                const pw.IconData(0xe002), 
+                const pw.IconData(0xe002),
                 PdfColors.red700,
                 PdfColors.red50,
                 [
@@ -188,7 +190,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
             if (plant.usagePreparation != null || plant.usageDuration != null)
               _pdfUnbreakableCard(
                 "Mode d'emploi",
-                const pw.IconData(0xef48), 
+                const pw.IconData(0xef48),
                 PdfColors.teal700,
                 PdfColors.teal50,
                 [
@@ -200,24 +202,24 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
             if (plant.descriptionVisual != null || plant.confusionRisks != null)
               _pdfUnbreakableCard(
                 "Identification",
-                const pw.IconData(0xe8f4), 
+                const pw.IconData(0xe8f4),
                 PdfColors.blue700,
                 PdfColors.blue50,
                 [
                   if (plant.plantType != null) _pdfContentBlock("Type", plant.plantType!),
                   if (plant.descriptionVisual != null) _pdfContentBlock("Description visuelle", plant.descriptionVisual!),
-                  
+
                   // --- ICONES STANDARDS (Safe) ---
-                  if (plant.procurementPicking != null) 
+                  if (plant.procurementPicking != null)
                     _pdfDetailRow(const pw.IconData(0xe406), "Cueillette :", plant.procurementPicking!), // Icons.nature
-                  
-                  if (plant.procurementBuying != null) 
+
+                  if (plant.procurementBuying != null)
                     _pdfDetailRow(const pw.IconData(0xe8cc), "Achat :", plant.procurementBuying!), // Icons.shopping_cart
-                  
-                  if (plant.procurementCulture != null) 
+
+                  if (plant.procurementCulture != null)
                     _pdfDetailRow(const pw.IconData(0xe3d3), "Culture :", plant.procurementCulture!), // Icons.filter_vintage (Fleur/Plante - très compatible)
 
-                  if (plant.confusionRisks != null) 
+                  if (plant.confusionRisks != null)
                     pw.Container(
                       margin: const pw.EdgeInsets.only(top: 10),
                       padding: const pw.EdgeInsets.all(8),
@@ -230,7 +232,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
             if (plant.scientificReferences != null && plant.scientificReferences!.isNotEmpty)
               _pdfUnbreakableCard(
                 "Informations scientifiques",
-                const pw.IconData(0xea4d), 
+                const pw.IconData(0xea4d),
                 PdfColors.grey800,
                 PdfColors.grey100,
                 [
@@ -240,9 +242,9 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
 
             if (_references.isNotEmpty)
               _pdfUnbreakableCard(
-                "Sources & Références", 
-                const pw.IconData(0xe865), 
-                PdfColors.grey800, 
+                "Sources & Références",
+                const pw.IconData(0xe865),
+                PdfColors.grey800,
                 PdfColors.white,
                 _references.map((ref) => pw.Padding(
                   padding: const pw.EdgeInsets.only(bottom: 2),
@@ -390,14 +392,14 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
             flexibleSpace: FlexibleSpaceBar(
               title: Text(plant.name,
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, shadows: [Shadow(color: Colors.black45, blurRadius: 10)])),
-              background: Hero(              
-                tag: 'plant-${plant.id}', 
+              background: Hero(
+                tag: widget.heroTag ?? 'plant-detail-${plant.id}',
                 child: imageUrl != null
                     ? CachedNetworkImage(
-                        imageUrl: imageUrl, 
+                        imageUrl: imageUrl,
                         fit: BoxFit.cover,
-                        color: Colors.black26, 
-                        colorBlendMode: BlendMode.darken,                        
+                        color: Colors.black26,
+                        colorBlendMode: BlendMode.darken,
                         placeholder: (context, url) => Container(color: AppTheme.teal1),
                         errorWidget: (context, url, error) => Container(color: AppTheme.teal1, child: const Icon(Icons.error)),
                       )
@@ -426,11 +428,11 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                   const SizedBox(height: 12),
 
                   Text(plant.scientificName ?? '', style: const TextStyle(fontStyle: FontStyle.italic, color: AppTheme.textGrey, fontSize: 18, fontFamily: 'Serif')),
-                  
+
                   if (plant.commonNames != null && plant.commonNames!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: Wrap(spacing: 6, children: plant.commonNames!.split(',').map((name) => 
+                      child: Wrap(spacing: 6, children: plant.commonNames!.split(',').map((name) =>
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(4)),
@@ -442,12 +444,12 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
 
                   Text(plant.descriptionShort ?? "Description en cours de chargement...", style: const TextStyle(fontSize: 16, height: 1.6, color: AppTheme.textDark)),
                   const SizedBox(height: 16),
-                  
+
                   if (plant.ailments.isNotEmpty)
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       const Text("Indiqué pour :", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                       const SizedBox(height: 6),
-                      Wrap(spacing: 6, runSpacing: 6, children: plant.ailments.map((a) => 
+                      Wrap(spacing: 6, runSpacing: 6, children: plant.ailments.map((a) =>
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(color: AppTheme.teal1.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
@@ -457,141 +459,134 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                     ]),
                   const SizedBox(height: 32),
 
+                  // --- PRÉCAUTIONS (ouvert par défaut) ---
                   if ((plant.safetyPrecautions != null && plant.safetyPrecautions!.isNotEmpty) || (plant.sideEffects != null && plant.sideEffects!.isNotEmpty))
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 20),
-                    decoration: _cardDecoration(const Color(0xFFFEF2F2), AppTheme.danger),
-                    child: Column(children: [
-                      _cardHeader("Précautions & Sécurité", Icons.warning_amber_rounded, const Color(0xFFFEF2F2), AppTheme.danger),
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          if (plant.safetyPrecautions != null && plant.safetyPrecautions!.isNotEmpty)
-                             Text(plant.safetyPrecautions!, style: const TextStyle(color: Color(0xFF7F1D1D), fontWeight: FontWeight.w500)),
-                          
-                          if (plant.sideEffects != null && plant.sideEffects!.isNotEmpty) ...[
-                            const SizedBox(height: 16),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                const Row(children: [Icon(Icons.info_outline, size: 16, color: AppTheme.danger), SizedBox(width: 6), Text("Effets secondaires possibles", style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.danger))]),
-                                const SizedBox(height: 6),
-                                Text(plant.sideEffects!, style: const TextStyle(fontSize: 14))
-                              ]),
-                            )
-                          ]
-                        ]),
-                      ),
-                    ]),
-                  ),
-
-                  if ((plant.usagePreparation != null && plant.usagePreparation!.isNotEmpty) || (plant.usageDuration != null && plant.usageDuration!.isNotEmpty))
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 20),
-                    decoration: _cardDecoration(const Color(0xFFECFDF5), AppTheme.teal2),
-                    child: Column(children: [
-                      _cardHeader("Mode d'emploi", Icons.medical_services_outlined, const Color(0xFFECFDF5), AppTheme.teal2),
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          if (plant.usagePreparation != null && plant.usagePreparation!.isNotEmpty) ...[
-                            const Text("PRÉPARATION & DOSAGE", style: TextStyle(color: AppTheme.teal2, fontWeight: FontWeight.bold, fontSize: 12)),
-                            const SizedBox(height: 4),
-                            Text(plant.usagePreparation!, style: const TextStyle(height: 1.5)),
-                          ],
-                          if (plant.usageDuration != null && plant.usageDuration!.isNotEmpty) ...[
-                            const SizedBox(height: 16),
-                            const Text("DURÉE", style: TextStyle(color: AppTheme.teal2, fontWeight: FontWeight.bold, fontSize: 12)),
-                            const SizedBox(height: 4),
-                            Text(plant.usageDuration!, style: const TextStyle(height: 1.5)),
-                          ]
-                        ]),
-                      ),
-                    ]),
-                  ),
-
-                  if (plant.descriptionVisual != null || hasProcurement || (plant.confusionRisks != null && plant.confusionRisks!.isNotEmpty))
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 20),
-                    decoration: _cardDecoration(const Color(0xFFEFF6FF), Colors.blue),
-                    child: Column(children: [
-                      _cardHeader("Identification", Icons.visibility_outlined, const Color(0xFFEFF6FF), Colors.blue),
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          if (plant.plantType != null && plant.plantType!.isNotEmpty)
-                            Padding(padding: const EdgeInsets.only(bottom: 8), child: Text("Type : ${plant.plantType}", style: const TextStyle(fontWeight: FontWeight.bold))),
-                          
-                          if (plant.descriptionVisual != null && plant.descriptionVisual!.isNotEmpty)
-                            Text(plant.descriptionVisual!, style: const TextStyle(height: 1.5)),
-                          
-                          if (hasProcurement) ...[
-                            const SizedBox(height: 16),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(color: const Color(0xFFF0F9FF), borderRadius: BorderRadius.circular(8)),
-                              child: Column(children: [
-                                if (plant.procurementPicking != null && plant.procurementPicking!.isNotEmpty) _supplyRow(Icons.park, "Cueillette", plant.procurementPicking!),
-                                if (plant.procurementBuying != null && plant.procurementBuying!.isNotEmpty) _supplyRow(Icons.shopping_bag, "Achat", plant.procurementBuying!),
-                                if (plant.procurementCulture != null && plant.procurementCulture!.isNotEmpty) _supplyRow(Icons.yard, "Culture", plant.procurementCulture!),
-                              ]),
-                            )
-                          ],
-
-                          if (plant.confusionRisks != null && plant.confusionRisks!.isNotEmpty) ...[
-                            const SizedBox(height: 16),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.orange.shade200)),
-                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Row(children: [Icon(Icons.warning_amber, size: 16, color: Colors.orange.shade800), const SizedBox(width: 6), Text("Ne pas confondre avec :", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange.shade800))]),
-                                const SizedBox(height: 6),
-                                Text(plant.confusionRisks!, style: TextStyle(fontSize: 14, color: Colors.orange.shade900))
-                              ]),
-                            )
-                          ]
-                        ]),
-                      ),
-                    ]),
-                  ),
-
-                  if (plant.scientificReferences != null && plant.scientificReferences!.isNotEmpty)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 20),
-                      decoration: _cardDecoration(Colors.grey.shade50, Colors.grey),
-                      child: Column(
-                        children: [
-                          _cardHeader("Informations scientifiques", Icons.science, Colors.grey.shade100, Colors.grey.shade800),
-                          Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Text(
-                              plant.scientificReferences!,
-                              style: const TextStyle(height: 1.5, fontSize: 14, color: AppTheme.textDark),
-                            ),
+                    _PlantSection(
+                      title: "Précautions & Sécurité",
+                      icon: Icons.warning_amber_rounded,
+                      accentColor: AppTheme.danger,
+                      bgColor: const Color(0xFFFEF2F2),
+                      initiallyExpanded: true,
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        if (plant.safetyPrecautions != null && plant.safetyPrecautions!.isNotEmpty)
+                          ExpandableText(
+                            text: plant.safetyPrecautions!,
+                            maxLines: 4,
+                            selectable: true,
+                            style: const TextStyle(color: Color(0xFF7F1D1D), fontWeight: FontWeight.w500, height: 1.5),
                           ),
+                        if (plant.sideEffects != null && plant.sideEffects!.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              const Row(children: [Icon(Icons.info_outline, size: 16, color: AppTheme.danger), SizedBox(width: 6), Text("Effets secondaires possibles", style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.danger))]),
+                              const SizedBox(height: 6),
+                              ExpandableText(text: plant.sideEffects!, maxLines: 3, selectable: true, style: const TextStyle(fontSize: 14, height: 1.5)),
+                            ]),
+                          )
+                        ]
+                      ]),
+                    ),
+
+                  // --- MODE D'EMPLOI (ouvert par défaut) ---
+                  if ((plant.usagePreparation != null && plant.usagePreparation!.isNotEmpty) || (plant.usageDuration != null && plant.usageDuration!.isNotEmpty))
+                    _PlantSection(
+                      title: "Mode d'emploi",
+                      icon: Icons.medical_services_outlined,
+                      accentColor: AppTheme.teal2,
+                      bgColor: const Color(0xFFECFDF5),
+                      initiallyExpanded: true,
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        if (plant.usagePreparation != null && plant.usagePreparation!.isNotEmpty) ...[
+                          const Text("PRÉPARATION & DOSAGE", style: TextStyle(color: AppTheme.teal2, fontWeight: FontWeight.bold, fontSize: 12)),
+                          const SizedBox(height: 4),
+                          ExpandableText(text: plant.usagePreparation!, maxLines: 4, selectable: true, style: const TextStyle(height: 1.5)),
                         ],
+                        if (plant.usageDuration != null && plant.usageDuration!.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          const Text("DURÉE", style: TextStyle(color: AppTheme.teal2, fontWeight: FontWeight.bold, fontSize: 12)),
+                          const SizedBox(height: 4),
+                          SelectableText(plant.usageDuration!, style: const TextStyle(height: 1.5)),
+                        ]
+                      ]),
+                    ),
+
+                  // --- IDENTIFICATION (fermé par défaut) ---
+                  if (plant.descriptionVisual != null || hasProcurement || (plant.confusionRisks != null && plant.confusionRisks!.isNotEmpty))
+                    _PlantSection(
+                      title: "Identification",
+                      icon: Icons.visibility_outlined,
+                      accentColor: Colors.blue,
+                      bgColor: const Color(0xFFEFF6FF),
+                      initiallyExpanded: false,
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        if (plant.plantType != null && plant.plantType!.isNotEmpty)
+                          Padding(padding: const EdgeInsets.only(bottom: 8), child: Text("Type : ${plant.plantType}", style: const TextStyle(fontWeight: FontWeight.bold))),
+                        if (plant.descriptionVisual != null && plant.descriptionVisual!.isNotEmpty)
+                          ExpandableText(text: plant.descriptionVisual!, maxLines: 4, selectable: true, style: const TextStyle(height: 1.5)),
+                        if (hasProcurement) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(color: const Color(0xFFF0F9FF), borderRadius: BorderRadius.circular(8)),
+                            child: Column(children: [
+                              if (plant.procurementPicking != null && plant.procurementPicking!.isNotEmpty) _supplyRow(Icons.park, "Cueillette", plant.procurementPicking!),
+                              if (plant.procurementBuying != null && plant.procurementBuying!.isNotEmpty) _supplyRow(Icons.shopping_bag, "Achat", plant.procurementBuying!),
+                              if (plant.procurementCulture != null && plant.procurementCulture!.isNotEmpty) _supplyRow(Icons.yard, "Culture", plant.procurementCulture!),
+                            ]),
+                          )
+                        ],
+                        if (plant.confusionRisks != null && plant.confusionRisks!.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.orange.shade200)),
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Row(children: [Icon(Icons.warning_amber, size: 16, color: Colors.orange.shade800), const SizedBox(width: 6), Text("Ne pas confondre avec :", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange.shade800))]),
+                              const SizedBox(height: 6),
+                              ExpandableText(text: plant.confusionRisks!, maxLines: 3, selectable: true, style: TextStyle(fontSize: 14, color: Colors.orange.shade900, height: 1.5)),
+                            ]),
+                          )
+                        ]
+                      ]),
+                    ),
+
+                  // --- INFORMATIONS SCIENTIFIQUES (fermé par défaut) ---
+                  if (plant.scientificReferences != null && plant.scientificReferences!.isNotEmpty)
+                    _PlantSection(
+                      title: "Informations scientifiques",
+                      icon: Icons.science,
+                      accentColor: Colors.grey.shade800,
+                      bgColor: Colors.grey.shade100,
+                      initiallyExpanded: false,
+                      child: ExpandableText(
+                        text: plant.scientificReferences!,
+                        maxLines: 4,
+                        selectable: true,
+                        style: const TextStyle(height: 1.5, fontSize: 14, color: AppTheme.textDark),
                       ),
                     ),
 
-                  if (!_loadingRefs && _references.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
+                  // --- SOURCES & RÉFÉRENCES (fermé par défaut) ---
+                  if (!_loadingRefs && _references.isNotEmpty)
+                    _PlantSection(
+                      title: "Sources & Références",
+                      icon: Icons.menu_book,
+                      accentColor: Colors.grey,
+                      bgColor: Colors.grey.shade50,
+                      initiallyExpanded: false,
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        const Row(children: [Icon(Icons.menu_book, color: Colors.grey), SizedBox(width: 10), Text("Sources & Références", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textDark))]),
-                        const SizedBox(height: 16),
                         ..._references.map((ref) => Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             const Text("• ", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
-                            Expanded(child: Text(ref.fullReference, style: const TextStyle(fontSize: 13, color: Colors.grey, height: 1.4))),
+                            Expanded(child: SelectableText(ref.fullReference, style: const TextStyle(fontSize: 13, color: Colors.grey, height: 1.4))),
                           ]),
                         ))
                       ]),
                     ),
-                  ],
 
                   const SizedBox(height: 40),
                   const Center(child: Text("Fiche réalisée par l'ASC Genève.\nNatural Self-Care ne remplace pas un avis médical.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 12))),
@@ -636,6 +631,57 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
         Text("$label : ", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
         Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
       ]),
+    );
+  }
+}
+
+// Widget accordéon réutilisable pour les sections de la fiche plante
+class _PlantSection extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Color accentColor;
+  final Color bgColor;
+  final bool initiallyExpanded;
+  final Widget child;
+
+  const _PlantSection({
+    required this.title,
+    required this.icon,
+    required this.accentColor,
+    required this.bgColor,
+    required this.child,
+    this.initiallyExpanded = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: accentColor.withOpacity(0.3)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 5, offset: const Offset(0, 2))],
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: initiallyExpanded,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          backgroundColor: bgColor.withOpacity(0.5),
+          collapsedBackgroundColor: Colors.white,
+          leading: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, color: accentColor, size: 20),
+          ),
+          title: Text(title, style: TextStyle(color: accentColor, fontWeight: FontWeight.bold, fontSize: 16)),
+          children: [child],
+        ),
+      ),
     );
   }
 }

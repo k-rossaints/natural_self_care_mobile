@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'theme.dart';
-import 'screens/main_scaffold.dart'; // <--- Importe le nouveau fichier
+import 'screens/main_scaffold.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    const ProviderScope(
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -15,9 +20,9 @@ class MyApp extends StatelessWidget {
       title: 'Natural Self-Care',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      
-      // On pointe vers le MainScaffold qui contient la barre de navigation
-      home: const MainScaffold(), 
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
+      home: const MainScaffold(),
     );
   }
 }

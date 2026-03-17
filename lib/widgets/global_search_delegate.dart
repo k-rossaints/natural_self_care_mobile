@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/string_utils.dart';
 import 'dart:math';
 import '../models/plant.dart';
 import '../models/symptom.dart';
@@ -67,7 +68,7 @@ class GlobalSearchDelegate extends SearchDelegate {
       return _buildEmptyState();
     }
 
-    final q = _removeDiacritics(query.toLowerCase());
+    final q = removeDiacritics(query.toLowerCase());
 
     // 1. Filtrer les Plantes
     final matchingPlants = plants.where((p) {
@@ -139,7 +140,7 @@ class GlobalSearchDelegate extends SearchDelegate {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
                   color: Colors.grey.shade100,
-                  image: p.image != null 
+                  image: p.image != null
                       ? DecorationImage(image: NetworkImage(_api.getImageUrl(p.image!)), fit: BoxFit.cover)
                       : null,
                 ),
@@ -148,7 +149,7 @@ class GlobalSearchDelegate extends SearchDelegate {
               title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
               subtitle: Text(p.scientificName ?? '', style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 12)),
               onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => PlantDetailScreen(plant: p)));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => PlantDetailScreen(plant: p, heroTag: 'search-plant-${p.id}')));
               },
             ),
           )),
@@ -175,13 +176,13 @@ class GlobalSearchDelegate extends SearchDelegate {
 
   bool _fuzzyMatch(String source, String query) {
     if (query.isEmpty) return true;
-    final s = _removeDiacritics(source.toLowerCase());
-    final q = query; 
-    
+    final s = removeDiacritics(source.toLowerCase());
+    final q = query;
+
     if (s.contains(q)) return true;
     final sourceWords = s.split(' ');
     for (var word in sourceWords) {
-      if (_levenshtein(word, q) <= 2) return true; 
+      if (_levenshtein(word, q) <= 2) return true;
     }
     return false;
   }
@@ -204,12 +205,4 @@ class GlobalSearchDelegate extends SearchDelegate {
     return v1[t.length];
   }
 
-  String _removeDiacritics(String str) {
-    var withDia = 'ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž';
-    var withoutDia = 'AAAAAAaaaaaaOOOOOOOooooooEEEEeeeeeCcDIIIIiiiiUUUUuuuuNnSsYyyZz';
-    for (int i = 0; i < withDia.length; i++) {
-      str = str.replaceAll(withDia[i], withoutDia[i]);
-    }
-    return str;
-  }
 }

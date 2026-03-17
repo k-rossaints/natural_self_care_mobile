@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../theme.dart';
 import 'home_screen.dart';
@@ -6,16 +7,16 @@ import 'remedies_list_screen.dart';
 import 'symptoms_list_screen.dart';
 import 'problems_index_screen.dart';
 import '../widgets/main_drawer.dart';
-import '../widgets/offline_banner.dart'; // <--- 1. IMPORT DU FICHIER CRÉÉ
+import '../widgets/offline_banner.dart';
 
-class MainScaffold extends StatefulWidget {
+class MainScaffold extends ConsumerStatefulWidget {
   const MainScaffold({super.key});
 
   @override
-  State<MainScaffold> createState() => _MainScaffoldState();
+  ConsumerState<MainScaffold> createState() => _MainScaffoldState();
 }
 
-class _MainScaffoldState extends State<MainScaffold> {
+class _MainScaffoldState extends ConsumerState<MainScaffold> {
   int _currentIndex = 0;
 
   void _goToTab(int index) {

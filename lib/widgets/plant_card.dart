@@ -14,20 +14,19 @@ class PlantCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final api = ApiService();
     final imageUrl = plant.image != null ? api.getImageUrl(plant.image!) : null;
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
-      // OPTIMISATION 1 : Le design de la carte est maintenant constant en mémoire (0 recalcul)
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.all(Radius.circular(20)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x0F000000), // Équivalent exact à Colors.black.withOpacity(0.06)
-            blurRadius: 15,
-            offset: Offset(0, 5),
-          ),
-        ],
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: const BorderRadius.all(Radius.circular(20)),
+        boxShadow: [BoxShadow(
+          color: isDark ? Colors.black.withOpacity(0.3) : const Color(0x0F000000),
+          blurRadius: 15,
+          offset: const Offset(0, 5),
+        )],
       ),
       child: Material(
         color: Colors.transparent,
@@ -38,88 +37,48 @@ class PlantCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. IMAGE DE COUVERTURE
-              Stack(
-                children: [
-                  Container(
-                    height: 160,
-                    width: double.infinity,
-                    color: Colors.grey.shade100,
-                    child: imageUrl != null
-                        ? CachedNetworkImage(
-                            imageUrl: imageUrl,
-                            fit: BoxFit.cover,
-                            // OPTIMISATION 2 : Limite la taille de l'image chargée dans la RAM
-                            memCacheHeight: 400,
-                            placeholder: (context, url) => const Center(child: Icon(Icons.image, color: Colors.black12)),
-                            errorWidget: (context, url, error) => const Center(child: Icon(Icons.broken_image, color: Colors.black12)),
-                          )
-                        : const Center(child: Icon(Icons.local_florist, size: 40, color: Colors.black12)),
-                  ),
-                ],
+              // IMAGE
+              Container(
+                height: 160,
+                width: double.infinity,
+                color: isDark ? AppTheme.darkCard : Colors.grey.shade100,
+                child: imageUrl != null
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
+                        memCacheHeight: 400,
+                        placeholder: (context, url) => const Center(child: Icon(Icons.image, color: Colors.black12)),
+                        errorWidget: (context, url, error) => const Center(child: Icon(Icons.broken_image, color: Colors.black12)),
+                      )
+                    : const Center(child: Icon(Icons.local_florist, size: 40, color: Colors.black12)),
               ),
 
-              // 2. CONTENU TEXTE
+              // CONTENU
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      plant.name,
-                      style: const TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textDark,
-                      ),
-                    ),
+                    Text(plant.name, style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: cs.onSurface)),
                     const SizedBox(height: 4),
-                    Text(
-                      plant.scientificName ?? '',
-                      style: const TextStyle(
-                        fontStyle: FontStyle.italic,
-                        color: AppTheme.textGrey,
-                        fontSize: 13,
-                        fontFamily: 'Serif'
-                      ),
-                    ),
-                    
-                    // Affichage de l'Habitat
+                    Text(plant.scientificName ?? '', style: TextStyle(fontStyle: FontStyle.italic, color: cs.onSurfaceVariant, fontSize: 13, fontFamily: 'Serif')),
                     if (plant.habitat != null && plant.habitat!.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 8, bottom: 4),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.public, size: 14, color: AppTheme.teal2),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                plant.habitat!,
-                                style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
+                        child: Row(children: [
+                          const Icon(Icons.public, size: 14, color: AppTheme.teal2),
+                          const SizedBox(width: 4),
+                          Expanded(child: Text(plant.habitat!, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                        ]),
                       ),
-
                     const SizedBox(height: 12),
-                    
                     if (plant.ailments.isNotEmpty)
                       Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
+                        spacing: 6, runSpacing: 6,
                         children: plant.ailments.take(3).map((a) => Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppTheme.teal1.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            a,
-                            style: const TextStyle(fontSize: 11, color: AppTheme.teal1, fontWeight: FontWeight.w600),
-                          ),
+                          decoration: BoxDecoration(color: AppTheme.teal1.withOpacity(0.08), borderRadius: BorderRadius.circular(6)),
+                          child: Text(a, style: const TextStyle(fontSize: 11, color: AppTheme.teal1, fontWeight: FontWeight.w600)),
                         )).toList(),
                       ),
                   ],

@@ -11,15 +11,19 @@ class Reference {
 
   factory Reference.fromJson(Map<String, dynamic> json) {
     String? pName;
-    // Directus renvoie parfois un objet imbriqué pour les relations
     if (json['plant'] != null && json['plant'] is Map) {
       pName = json['plant']['name'];
     }
-
     return Reference(
       id: json['id'],
       fullReference: json['full_reference'] ?? '',
       plantName: pName,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'full_reference': fullReference,
+    'plant': plantName != null ? {'name': plantName} : null,
+  };
 }
