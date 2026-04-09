@@ -22,6 +22,9 @@ class MainDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tealColor = isDark ? AppTheme.tealDark : AppTheme.teal1;
+
     return Drawer(
       child: Column(
         children: [
@@ -51,9 +54,9 @@ class MainDrawer extends StatelessWidget {
                     ],
                   ),
                 ),
-                
+
                 ListTile(
-                  leading: const Icon(Icons.home_filled, color: AppTheme.teal1),
+                  leading: Icon(Icons.home_filled, color: tealColor),
                   title: const Text('Accueil', style: TextStyle(fontWeight: FontWeight.bold)),
                   onTap: () {
                     Navigator.pop(context);
@@ -61,7 +64,7 @@ class MainDrawer extends StatelessWidget {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.local_florist, color: AppTheme.teal1),
+                  leading: Icon(Icons.local_florist, color: tealColor),
                   title: const Text('Explorer les remèdes', style: TextStyle(fontWeight: FontWeight.bold)),
                   onTap: () {
                     Navigator.pop(context);
@@ -69,7 +72,7 @@ class MainDrawer extends StatelessWidget {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.alt_route, color: AppTheme.teal1),
+                  leading: Icon(Icons.alt_route, color: tealColor),
                   title: const Text('Chemins de décision', style: TextStyle(fontWeight: FontWeight.bold)),
                   onTap: () {
                     Navigator.pop(context);
@@ -77,7 +80,7 @@ class MainDrawer extends StatelessWidget {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.menu_book, color: AppTheme.teal1),
+                  leading: Icon(Icons.menu_book, color: tealColor),
                   title: const Text('Index des problèmes', style: TextStyle(fontWeight: FontWeight.bold)),
                   onTap: () {
                     Navigator.pop(context);

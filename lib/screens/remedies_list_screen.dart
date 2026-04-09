@@ -184,8 +184,9 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
                         Container(
                           decoration: BoxDecoration(
                             color: isDark ? AppTheme.darkCard : Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)],
+                            borderRadius: BorderRadius.circular(30),
+                            border: isDark ? Border.all(color: const Color(0xFF3A3A3A)) : null,
+                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.08), blurRadius: isDark ? 4 : 10, offset: const Offset(0, 2))],
                           ),
                           child: TextField(
                             focusNode: _searchFocus,
@@ -200,9 +201,10 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
                             decoration: InputDecoration(
                               hintText: "Plante, symptôme, habitat...",
                               hintStyle: TextStyle(color: isDark ? AppTheme.darkTextSecondary : Colors.grey.shade400, fontSize: 14),
-                              prefixIcon: const Icon(Icons.search, color: AppTheme.teal1),
+                              prefixIcon: Icon(Icons.search, color: isDark ? AppTheme.tealDark : AppTheme.teal1),
+                              filled: false,
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                             ),
                           ),
                         ),
@@ -270,23 +272,25 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
 
   Widget _buildDropdown(BuildContext context, {required String hint, required String? value, required List<String> items, required IconData icon, required Function(String?) onChanged}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tealColor = isDark ? AppTheme.tealDark : AppTheme.teal1;
     final isEmpty = items.isEmpty;
     return Container(
       height: 45,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: value != null ? AppTheme.teal1.withOpacity(0.1) : (isDark ? AppTheme.darkCard : (isEmpty ? Colors.grey.shade100 : Colors.white)),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: value != null ? AppTheme.teal1 : Colors.grey.shade400),
+        color: value != null ? tealColor.withOpacity(isDark ? 0.15 : 0.1) : (isDark ? AppTheme.darkCard : (isEmpty ? Colors.grey.shade100 : Colors.white)),
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: value != null ? tealColor : (isDark ? const Color(0xFF3A3A3A) : Colors.grey.shade300)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.15 : 0.04), blurRadius: 4, offset: const Offset(0, 1))],
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
           dropdownColor: isDark ? AppTheme.darkCard : Colors.white,
           hint: Row(children: [Icon(icon, size: 16, color: Colors.grey), const SizedBox(width: 8), Text(isEmpty ? "(Vide)" : hint, style: const TextStyle(fontSize: 13, color: Colors.grey))]),
-          icon: value != null ? GestureDetector(onTap: () => onChanged(null), child: const Icon(Icons.close, size: 18, color: AppTheme.teal1)) : Icon(Icons.arrow_drop_down, color: isEmpty ? Colors.grey.shade300 : Colors.grey),
+          icon: value != null ? GestureDetector(onTap: () => onChanged(null), child: Icon(Icons.close, size: 18, color: tealColor)) : Icon(Icons.arrow_drop_down, color: isEmpty ? Colors.grey.shade300 : Colors.grey),
           isExpanded: true,
-          style: TextStyle(color: value != null ? AppTheme.teal1 : (isDark ? AppTheme.darkTextPrimary : Colors.black87), fontWeight: FontWeight.w600, fontSize: 13),
+          style: TextStyle(color: value != null ? tealColor : (isDark ? AppTheme.darkTextPrimary : Colors.black87), fontWeight: FontWeight.w600, fontSize: 13),
           items: isEmpty ? null : items.map((item) => DropdownMenuItem<String>(value: item, child: Text(item, maxLines: 1, overflow: TextOverflow.ellipsis))).toList(),
           onChanged: isEmpty ? null : onChanged,
         ),

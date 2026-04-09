@@ -12,6 +12,16 @@ import '../providers/symptoms_provider.dart';
 import 'plant_detail_screen.dart';
 import 'decision_session_screen.dart';
 
+/// Résultat de recherche avec contexte et priorité
+class _SearchResult {
+  final dynamic item; // Plant ou Symptom
+  final int tier; // 1=nom, 2=métadonnées, 3=contenu complet
+  final String? matchField; // Ex: "Préparation", "Effets secondaires"
+  final String? matchSnippet; // Ex: "...une cuillère à café de..."
+
+  _SearchResult({required this.item, required this.tier, this.matchField, this.matchSnippet});
+}
+
 class HomeScreen extends ConsumerStatefulWidget {
   final Function(int) onTabChange;
 
@@ -24,7 +34,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final ApiService _api = ApiService();
 
-  List<dynamic> _searchResults = [];
+  List<_SearchResult> _searchResults = [];
   bool _isSearching = false;
 
   final TextEditingController _searchController = TextEditingController();
@@ -55,26 +65,121 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return;
     }
     _debounce = Timer(const Duration(milliseconds: 300), () {
-      if (query.trim().length >= 3) _performSearch(query, plants, symptoms);
+      if (query.trim().length >= 2) _performSearch(query, plants, symptoms);
     });
+  }
+
+  /// Extrait un snippet de ~60 caractères autour de la première occurrence du mot
+  String? _extractSnippet(String? text, String query) {
+    if (text == null || text.isEmpty) return null;
+    final normalized = removeDiacritics(text.toLowerCase());
+    final idx = normalized.indexOf(query);
+    if (idx == -1) return null;
+
+    const radius = 30;
+    final start = (idx - radius).clamp(0, text.length);
+    final end = (idx + query.length + radius).clamp(0, text.length);
+    final snippet = text.substring(start, end).replaceAll('\n', ' ').trim();
+    return '${start > 0 ? '...' : ''}$snippet${end < text.length ? '...' : ''}';
+  }
+
+  /// Cherche dans un champ texte ; retourne le snippet si trouvé
+  String? _matchField(String? fieldValue, String query) {
+    if (fieldValue == null || fieldValue.isEmpty) return null;
+    final normalized = removeDiacritics(fieldValue.toLowerCase());
+    return normalized.contains(query) ? _extractSnippet(fieldValue, query) : null;
   }
 
   void _performSearch(String query, List<Plant> plants, List<Symptom> symptoms) {
     final q = removeDiacritics(query.toLowerCase());
-    final matchingPlants = plants.where((p) {
+    final List<_SearchResult> results = [];
+    final Set<int> addedPlantIds = {};
+
+    // --- SYMPTÔMES (chemins de décision) ---
+    for (final s in symptoms) {
+      final nameMatch = removeDiacritics(s.name.toLowerCase()).contains(q);
+      final descMatch = removeDiacritics((s.description ?? '').toLowerCase()).contains(q);
+      final infoMatch = removeDiacritics((s.additionalInfo ?? '').toLowerCase()).contains(q);
+      if (nameMatch) {
+        results.add(_SearchResult(item: s, tier: 1));
+      } else if (descMatch) {
+        results.add(_SearchResult(item: s, tier: 2, matchField: "Description", matchSnippet: _extractSnippet(s.description, q)));
+      } else if (infoMatch) {
+        results.add(_SearchResult(item: s, tier: 3, matchField: "Bon à savoir", matchSnippet: _extractSnippet(s.additionalInfo, q)));
+      }
+    }
+
+    // --- PLANTES : recherche par tiers de priorité ---
+    // Tier 1 : nom exact
+    for (final p in plants) {
       final name = removeDiacritics(p.name.toLowerCase());
+      if (name.contains(q)) {
+        results.add(_SearchResult(item: p, tier: 1));
+        addedPlantIds.add(p.id);
+      }
+    }
+
+    // Tier 2 : nom scientifique, noms communs, symptômes/indications
+    for (final p in plants) {
+      if (addedPlantIds.contains(p.id)) continue;
       final sci = removeDiacritics((p.scientificName ?? '').toLowerCase());
-      bool match = name.contains(q) || sci.contains(q);
-      if (!match) match = p.ailments.any((a) => removeDiacritics(a.toLowerCase()).contains(q));
-      return match;
-    }).toList();
-    final matchingSymptoms = symptoms.where((s) {
-      final name = removeDiacritics(s.name.toLowerCase());
-      final desc = removeDiacritics((s.description ?? '').toLowerCase());
-      return name.contains(q) || desc.contains(q);
-    }).toList();
+      final common = removeDiacritics((p.commonNames ?? '').toLowerCase());
+      final ailmentsJoined = p.ailments.map((a) => removeDiacritics(a.toLowerCase())).join(' ');
+      final habitat = removeDiacritics((p.habitat ?? '').toLowerCase());
+
+      if (sci.contains(q)) {
+        results.add(_SearchResult(item: p, tier: 2, matchField: "Nom scientifique", matchSnippet: p.scientificName));
+        addedPlantIds.add(p.id);
+      } else if (common.contains(q)) {
+        results.add(_SearchResult(item: p, tier: 2, matchField: "Noms communs", matchSnippet: _extractSnippet(p.commonNames, q)));
+        addedPlantIds.add(p.id);
+      } else if (ailmentsJoined.contains(q)) {
+        final match = p.ailments.firstWhere((a) => removeDiacritics(a.toLowerCase()).contains(q), orElse: () => '');
+        results.add(_SearchResult(item: p, tier: 2, matchField: "Indication", matchSnippet: match));
+        addedPlantIds.add(p.id);
+      } else if (habitat.contains(q)) {
+        results.add(_SearchResult(item: p, tier: 2, matchField: "Habitat", matchSnippet: p.habitat));
+        addedPlantIds.add(p.id);
+      }
+    }
+
+    // Tier 3 : contenu complet (descriptions, préparation, effets secondaires, etc.)
+    final contentFields = <String, String? Function(Plant)>{
+      'Description': (p) => p.descriptionShort,
+      'Préparation': (p) => p.usagePreparation,
+      'Durée': (p) => p.usageDuration,
+      'Précautions': (p) => p.safetyPrecautions,
+      'Effets secondaires': (p) => p.sideEffects,
+      'Description visuelle': (p) => p.descriptionVisual,
+      'Cueillette': (p) => p.procurementPicking,
+      'Achat': (p) => p.procurementBuying,
+      'Culture': (p) => p.procurementCulture,
+      'Risques de confusion': (p) => p.confusionRisks,
+      'Réf. scientifiques': (p) => p.scientificReferences,
+    };
+
+    for (final p in plants) {
+      if (addedPlantIds.contains(p.id)) continue;
+      for (final entry in contentFields.entries) {
+        final snippet = _matchField(entry.value(p), q);
+        if (snippet != null) {
+          results.add(_SearchResult(item: p, tier: 3, matchField: entry.key, matchSnippet: snippet));
+          addedPlantIds.add(p.id);
+          break; // un seul résultat par plante
+        }
+      }
+    }
+
+    // Tri : tier 1 d'abord, puis 2, puis 3. À tier égal, symptômes avant plantes.
+    results.sort((a, b) {
+      if (a.tier != b.tier) return a.tier.compareTo(b.tier);
+      final aIsSymptom = a.item is Symptom ? 0 : 1;
+      final bIsSymptom = b.item is Symptom ? 0 : 1;
+      return aIsSymptom.compareTo(bIsSymptom);
+    });
+
     setState(() {
-      _searchResults = [...matchingSymptoms, ...matchingPlants];
+      _searchResults = results;
       _isSearching = true;
     });
   }
@@ -145,6 +250,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           suffixIcon: _searchController.text.isNotEmpty
                             ? IconButton(icon: const Icon(Icons.close, color: Colors.grey), onPressed: () { _searchController.clear(); _onSearchChanged('', plants, symptoms); FocusScope.of(context).unfocus(); })
                             : null,
+                          filled: false,
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                         ),
@@ -155,10 +261,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
 
               // RÉSULTATS DE RECHERCHE
-              if (_isSearching && _searchController.text.length >= 3)
+              if (_isSearching && _searchController.text.length >= 2)
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  constraints: const BoxConstraints(maxHeight: 350),
+                  constraints: const BoxConstraints(maxHeight: 400),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(20),
@@ -168,13 +274,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: _searchResults.isEmpty
-                      ? const Padding(padding: EdgeInsets.all(20), child: Text("Aucun résultat trouvé.", style: TextStyle(color: Colors.grey)))
+                      ? Padding(padding: const EdgeInsets.all(20), child: Text("Aucun résultat trouvé.", style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)))
                       : ListView.separated(
                           padding: EdgeInsets.zero,
                           shrinkWrap: true,
                           physics: const ClampingScrollPhysics(),
                           itemCount: _searchResults.length,
-                          separatorBuilder: (context, index) => const Divider(height: 1),
+                          separatorBuilder: (context, index) => Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
                           itemBuilder: (context, index) => _buildResultItem(_searchResults[index]),
                         ),
                   ),
@@ -199,7 +305,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       icon: Icons.alt_route_outlined,
                       title: "Chemins de décision",
                       subtitle: "Trouver une solution selon vos symptômes.",
-                      color: const Color(0xFF2C3E50),
+                      color: AppTheme.teal1,
                       onTap: () => widget.onTabChange(2),
                     ),
                     const SizedBox(height: 16),
@@ -207,7 +313,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       icon: Icons.menu_book_outlined,
                       title: "Index des problèmes",
                       subtitle: "Liste de A à Z des pathologies traitées.",
-                      color: const Color(0xFF2C3E50),
+                      color: AppTheme.teal1,
                       onTap: () => widget.onTabChange(3),
                     ),
                   ],
@@ -240,53 +346,104 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-    Widget _buildResultItem(dynamic result) {
-    // On crée un ID unique pour l'animation Hero
-    final String heroTag = result is Plant ? 'home-plant-${result.id}' : 'home-symptom-${result.id}';
+  Widget _buildResultItem(_SearchResult sr) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tealColor = isDark ? AppTheme.tealDark : AppTheme.teal1;
+    final cs = Theme.of(context).colorScheme;
 
-    if (result is Plant) {
+    if (sr.item is Plant) {
+      final plant = sr.item as Plant;
+      final heroTag = 'home-plant-${plant.id}';
+
+      // Sous-titre adaptatif : montre le champ correspondant pour le tier 2-3
+      Widget subtitle;
+      if (sr.tier == 1) {
+        subtitle = Text("Plante", style: TextStyle(fontSize: 12, color: tealColor));
+      } else {
+        subtitle = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(sr.matchField ?? "Plante", style: TextStyle(fontSize: 11, color: tealColor, fontWeight: FontWeight.w600)),
+            if (sr.matchSnippet != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  sr.matchSnippet!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant, fontStyle: FontStyle.italic),
+                ),
+              ),
+          ],
+        );
+      }
+
       return ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
         leading: Hero(
-          tag: heroTag, // L'image va "voler" vers la page suivante
+          tag: heroTag,
           child: Container(
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: isDark ? AppTheme.darkCard : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: result.image != null
+            child: plant.image != null
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.network(_api.getImageUrl(result.image!), fit: BoxFit.cover),
+                    child: Image.network(_api.getImageUrl(plant.image!), fit: BoxFit.cover),
                   )
                 : const Icon(Icons.local_florist, size: 20, color: Colors.grey),
           ),
         ),
-        title: Text(result.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-        subtitle: const Text("Plante", style: TextStyle(fontSize: 12, color: AppTheme.teal1)),
-        trailing: const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
-        onTap: () {
-          _searchFocus.unfocus(); // On ferme le clavier AVANT de partir
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => PlantDetailScreen(plant: result, heroTag: 'home-plant-${result.id}')),
-          );
-        },
-      );
-    } else if (result is Symptom) {
-      return ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: const Icon(Icons.alt_route, size: 20, color: Colors.blue),
-        title: Text(result.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-        subtitle: const Text("Diagnostic interactif", style: TextStyle(fontSize: 12, color: Colors.blue)),
-        trailing: const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
+        title: Text(plant.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: cs.onSurface)),
+        subtitle: subtitle,
+        trailing: Icon(Icons.chevron_right, size: 18, color: cs.onSurfaceVariant),
         onTap: () {
           _searchFocus.unfocus();
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => DecisionSessionScreen(symptom: result)),
+            MaterialPageRoute(builder: (context) => PlantDetailScreen(plant: plant, heroTag: heroTag)),
+          );
+        },
+      );
+    } else if (sr.item is Symptom) {
+      final symptom = sr.item as Symptom;
+
+      Widget subtitle;
+      if (sr.tier == 1) {
+        subtitle = Text("Diagnostic interactif", style: TextStyle(fontSize: 12, color: isDark ? Colors.blue.shade300 : Colors.blue));
+      } else {
+        subtitle = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(sr.matchField ?? "Diagnostic", style: TextStyle(fontSize: 11, color: isDark ? Colors.blue.shade300 : Colors.blue, fontWeight: FontWeight.w600)),
+            if (sr.matchSnippet != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  sr.matchSnippet!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant, fontStyle: FontStyle.italic),
+                ),
+              ),
+          ],
+        );
+      }
+
+      return ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        leading: Icon(Icons.alt_route, size: 20, color: isDark ? Colors.blue.shade300 : Colors.blue),
+        title: Text(symptom.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: cs.onSurface)),
+        subtitle: subtitle,
+        trailing: Icon(Icons.chevron_right, size: 18, color: cs.onSurfaceVariant),
+        onTap: () {
+          _searchFocus.unfocus();
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => DecisionSessionScreen(symptom: symptom)),
           );
         },
       );
@@ -295,7 +452,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildNavCard({required IconData icon, required String title, required String subtitle, required Color color, required VoidCallback onTap}) {
-    return Card(elevation: 4, shadowColor: color.withOpacity(0.2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(16), child: Padding(padding: const EdgeInsets.all(20), child: Row(children: [Container(width: 50, height: 50, decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle), child: Icon(icon, color: color, size: 28)), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: color)), const SizedBox(height: 4), Text(subtitle, style: TextStyle(fontSize: 13, color: Colors.grey[600]))])), Icon(Icons.chevron_right, color: Colors.grey[300])]))));
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final displayColor = isDark ? (color == AppTheme.teal1 ? AppTheme.tealDark : cs.onSurface) : color;
+    return Card(elevation: isDark ? 0 : 4, shadowColor: color.withOpacity(0.2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: isDark ? BorderSide(color: cs.outlineVariant) : BorderSide.none), child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(16), child: Padding(padding: const EdgeInsets.all(20), child: Row(children: [Container(width: 50, height: 50, decoration: BoxDecoration(color: displayColor.withOpacity(0.12), shape: BoxShape.circle), child: Icon(icon, color: displayColor, size: 28)), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: displayColor)), const SizedBox(height: 4), Text(subtitle, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant))])), Icon(Icons.chevron_right, color: cs.onSurfaceVariant)]))));
   }
 
   // MODIFICATION ICI : On accepte l'URL et on utilise InkWell pour le clic

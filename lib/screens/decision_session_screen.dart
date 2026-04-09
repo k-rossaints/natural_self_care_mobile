@@ -192,12 +192,11 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: Text(widget.symptom.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
-        foregroundColor: AppTheme.textDark,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -217,9 +216,9 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
                       children: [
                         Icon(Icons.wifi_off_rounded, size: 64, color: Colors.grey.shade400),
                         const SizedBox(height: 16),
-                        const Text("Pas de connexion", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text("Pas de connexion", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
                         const SizedBox(height: 8),
-                        Text("Les chemins de décision ne sont pas disponibles.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade600)),
+                        Text("Les chemins de décision ne sont pas disponibles.", textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                         const SizedBox(height: 24),
                         ElevatedButton.icon(
                           onPressed: _loadData,
@@ -236,34 +235,37 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
               padding: const EdgeInsets.all(20),
               children: [
                 if (widget.symptom.additionalInfo != null)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 24),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      border: Border(left: BorderSide(color: Colors.blue.shade700, width: 4)),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(children: [
-                          Icon(Icons.info, color: Colors.blue.shade700, size: 20),
-                          const SizedBox(width: 8),
-                          Text("Bon à savoir", style: TextStyle(color: Colors.blue.shade900, fontWeight: FontWeight.bold)),
-                        ]),
-                        const SizedBox(height: 8),
-                        Text(widget.symptom.additionalInfo!, style: TextStyle(color: Colors.blue.shade900, height: 1.4)),
-                      ],
-                    ),
-                  ),
+                  Builder(builder: (ctx) {
+                    final isDark = Theme.of(ctx).brightness == Brightness.dark;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 24),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.blue.withOpacity(0.12) : Colors.blue.shade50,
+                        border: Border(left: BorderSide(color: Colors.blue.shade700, width: 4)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(children: [
+                            Icon(Icons.info, color: Colors.blue.shade400, size: 20),
+                            const SizedBox(width: 8),
+                            Text("Bon à savoir", style: TextStyle(color: isDark ? Colors.blue.shade200 : Colors.blue.shade900, fontWeight: FontWeight.bold)),
+                          ]),
+                          const SizedBox(height: 8),
+                          Text(widget.symptom.additionalInfo!, style: TextStyle(color: isDark ? Colors.blue.shade200 : Colors.blue.shade900, height: 1.4)),
+                        ],
+                      ),
+                    );
+                  }),
 
                 ..._history.asMap().entries.map((entry) => _buildHistoryItem(entry.key, entry.value)),
 
                 if (_currentStep != null)
                   _buildCurrentStepCard(_currentStep!)
                 else if (_history.isNotEmpty)
-                  const Padding(padding: EdgeInsets.all(20), child: Center(child: Text("Fin du parcours."))),
+                  Padding(padding: const EdgeInsets.all(20), child: Center(child: Text("Fin du parcours.", style: TextStyle(color: Theme.of(context).colorScheme.onSurface)))),
 
                 const SizedBox(height: 40),
               ],
@@ -282,7 +284,7 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
               children: [
                 Container(
                   width: 24, height: 24,
-                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.fromBorderSide(BorderSide(color: Colors.grey, width: 2))),
+                  decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, shape: BoxShape.circle, border: Border.fromBorderSide(BorderSide(color: Theme.of(context).colorScheme.outline, width: 2))),
                   child: Center(child: Icon(Icons.check, size: 14, color: Colors.grey.shade600)),
                 ),
                 Expanded(child: Container(width: 2, color: Colors.grey.shade300)),
@@ -294,27 +296,34 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
                 opacity: 0.7,
                 child: Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text("Question ${index + 1}", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                          Text("Question ${index + 1}", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                           InkWell(
                             onTap: () => _editAt(index),
-                            child: const Padding(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4), child: Text("Modifier", style: TextStyle(color: AppTheme.teal1, fontWeight: FontWeight.bold, fontSize: 12))),
+                            child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), child: Text("Modifier", style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? AppTheme.tealDark : AppTheme.teal1, fontWeight: FontWeight.bold, fontSize: 12))),
                           )
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text(record.step.content, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
+                      Text(record.step.content, style: TextStyle(fontWeight: FontWeight.w500, fontSize: 15, color: Theme.of(context).colorScheme.onSurface)),
                       const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(20)),
-                        child: Text("Votre réponse : ${record.answer ? 'Oui' : 'Non'}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey.shade700)),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text("Votre réponse : ${record.answer ? 'Oui' : 'Non'}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                       ),
                     ],
                   ),
@@ -347,7 +356,7 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
         Expanded(
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: isEmergency ? AppTheme.danger : AppTheme.teal1, width: 2),
               boxShadow: [BoxShadow(color: (isEmergency ? AppTheme.danger : AppTheme.teal1).withOpacity(0.1), blurRadius: 12, offset: const Offset(0, 4))],
@@ -356,7 +365,7 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
             child: Column(
               children: [
                 if (isQuestion)
-                  Text("Question ${_history.length + 1}", style: const TextStyle(color: AppTheme.teal1, fontWeight: FontWeight.bold, letterSpacing: 1))
+                  Text("Question ${_history.length + 1}", style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? AppTheme.tealDark : AppTheme.teal1, fontWeight: FontWeight.bold, letterSpacing: 1))
                 else
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -369,7 +378,7 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
 
                 const SizedBox(height: 16),
 
-                Text(step.content, textAlign: TextAlign.center, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, height: 1.4, color: AppTheme.textDark)),
+                Text(step.content, textAlign: TextAlign.center, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, height: 1.4, color: Theme.of(context).colorScheme.onSurface)),
 
                 const SizedBox(height: 24),
 
@@ -381,8 +390,8 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () => _answer(false),
-                              style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), side: BorderSide(color: Colors.grey.shade300), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                              child: const Text("Non", style: TextStyle(color: Colors.black87, fontSize: 16)),
+                              style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), side: BorderSide(color: Theme.of(context).colorScheme.outline), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                              child: Text("Non", style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 16)),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -475,7 +484,11 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
   Widget _buildRecommendedPlantCard(Plant plant) {
     final imageUrl = plant.image != null ? _api.getImageUrl(plant.image!) : null;
     return Container(
-      decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+      ),
       child: Material(
         color: Colors.transparent, borderRadius: BorderRadius.circular(12), clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -486,17 +499,17 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
               children: [
                 Container(
                   width: 50, height: 50,
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: Colors.white, image: imageUrl != null ? DecorationImage(image: CachedNetworkImageProvider(imageUrl), fit: BoxFit.cover) : null),
-                  child: imageUrl == null ? const Icon(Icons.local_florist, color: Colors.grey, size: 20) : null,
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: Theme.of(context).colorScheme.surface, image: imageUrl != null ? DecorationImage(image: CachedNetworkImageProvider(imageUrl), fit: BoxFit.cover) : null),
+                  child: imageUrl == null ? Icon(Icons.local_florist, color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20) : null,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(plant.name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                    const Text("Voir la fiche", style: TextStyle(fontSize: 12, color: AppTheme.teal1, fontWeight: FontWeight.w600)),
+                    Text(plant.name, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
+                    Text("Voir la fiche", style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? AppTheme.tealDark : AppTheme.teal1, fontWeight: FontWeight.w600)),
                   ]),
                 ),
-                const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                Icon(Icons.arrow_forward_ios, size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ],
             ),
           ),
