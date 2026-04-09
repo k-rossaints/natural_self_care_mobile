@@ -101,6 +101,7 @@ class _ProblemsIndexScreenState extends ConsumerState<ProblemsIndexScreen> {
                       hintText: "Rechercher (ex: Acné, Stress...)",
                       hintStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkTextSecondary : Colors.grey.shade400),
                       prefixIcon: Icon(Icons.search, color: Theme.of(context).brightness == Brightness.dark ? AppTheme.tealDark : AppTheme.teal1),
+                      filled: false,
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                     ),

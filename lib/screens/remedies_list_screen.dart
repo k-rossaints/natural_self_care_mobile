@@ -202,6 +202,7 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
                               hintText: "Plante, symptôme, habitat...",
                               hintStyle: TextStyle(color: isDark ? AppTheme.darkTextSecondary : Colors.grey.shade400, fontSize: 14),
                               prefixIcon: Icon(Icons.search, color: isDark ? AppTheme.tealDark : AppTheme.teal1),
+                              filled: false,
                               border: InputBorder.none,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                             ),

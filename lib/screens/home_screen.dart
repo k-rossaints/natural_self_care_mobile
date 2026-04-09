@@ -250,6 +250,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           suffixIcon: _searchController.text.isNotEmpty
                             ? IconButton(icon: const Icon(Icons.close, color: Colors.grey), onPressed: () { _searchController.clear(); _onSearchChanged('', plants, symptoms); FocusScope.of(context).unfocus(); })
                             : null,
+                          filled: false,
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                         ),

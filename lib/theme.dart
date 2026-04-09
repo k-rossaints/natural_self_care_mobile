@@ -124,8 +124,7 @@ class AppTheme {
         color: Color(0xFF333333),
       ),
       inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: darkCard,
+        filled: false,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
