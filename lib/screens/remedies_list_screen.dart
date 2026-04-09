@@ -270,23 +270,24 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
 
   Widget _buildDropdown(BuildContext context, {required String hint, required String? value, required List<String> items, required IconData icon, required Function(String?) onChanged}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tealColor = isDark ? AppTheme.tealDark : AppTheme.teal1;
     final isEmpty = items.isEmpty;
     return Container(
       height: 45,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: value != null ? AppTheme.teal1.withOpacity(0.1) : (isDark ? AppTheme.darkCard : (isEmpty ? Colors.grey.shade100 : Colors.white)),
+        color: value != null ? tealColor.withOpacity(isDark ? 0.15 : 0.1) : (isDark ? AppTheme.darkCard : (isEmpty ? Colors.grey.shade100 : Colors.white)),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: value != null ? AppTheme.teal1 : Colors.grey.shade400),
+        border: Border.all(color: value != null ? tealColor : (isDark ? Colors.grey.shade600 : Colors.grey.shade400)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
           dropdownColor: isDark ? AppTheme.darkCard : Colors.white,
           hint: Row(children: [Icon(icon, size: 16, color: Colors.grey), const SizedBox(width: 8), Text(isEmpty ? "(Vide)" : hint, style: const TextStyle(fontSize: 13, color: Colors.grey))]),
-          icon: value != null ? GestureDetector(onTap: () => onChanged(null), child: const Icon(Icons.close, size: 18, color: AppTheme.teal1)) : Icon(Icons.arrow_drop_down, color: isEmpty ? Colors.grey.shade300 : Colors.grey),
+          icon: value != null ? GestureDetector(onTap: () => onChanged(null), child: Icon(Icons.close, size: 18, color: tealColor)) : Icon(Icons.arrow_drop_down, color: isEmpty ? Colors.grey.shade300 : Colors.grey),
           isExpanded: true,
-          style: TextStyle(color: value != null ? AppTheme.teal1 : (isDark ? AppTheme.darkTextPrimary : Colors.black87), fontWeight: FontWeight.w600, fontSize: 13),
+          style: TextStyle(color: value != null ? tealColor : (isDark ? AppTheme.darkTextPrimary : Colors.black87), fontWeight: FontWeight.w600, fontSize: 13),
           items: isEmpty ? null : items.map((item) => DropdownMenuItem<String>(value: item, child: Text(item, maxLines: 1, overflow: TextOverflow.ellipsis))).toList(),
           onChanged: isEmpty ? null : onChanged,
         ),

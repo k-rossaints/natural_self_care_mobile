@@ -14,12 +14,15 @@ class AppTheme {
   static const Color textGrey = Color(0xFF64748B);
   static const Color danger = Color(0xFFEF4444);
 
-  // Couleurs dark
+  // Couleurs dark — neutres, sans teinte teal
   static const Color darkBackground = Color(0xFF121212);
   static const Color darkSurface = Color(0xFF1E1E1E);
   static const Color darkCard = Color(0xFF2A2A2A);
   static const Color darkTextPrimary = Color(0xFFE8E8E8);
-  static const Color darkTextSecondary = Color(0xFF9E9E9E);
+  static const Color darkTextSecondary = Color(0xFFAAAAAA);
+
+  // Teal plus lisible en dark mode
+  static const Color tealDark = Color(0xFF4DD9E4);
 
   static ThemeData get lightTheme {
     return ThemeData(
@@ -51,16 +54,30 @@ class AppTheme {
   }
 
   static ThemeData get darkTheme {
+    // On construit un ColorScheme explicite pour éviter les teintes teal sur les surfaces
+    const darkColorScheme = ColorScheme.dark(
+      primary: teal1,
+      onPrimary: Colors.white,
+      secondary: teal2,
+      onSecondary: Colors.white,
+      surface: darkSurface,
+      onSurface: darkTextPrimary,
+      onSurfaceVariant: darkTextSecondary,
+      surfaceContainerLowest: Color(0xFF0E0E0E),
+      surfaceContainerLow: Color(0xFF1A1A1A),
+      surfaceContainer: Color(0xFF222222),
+      surfaceContainerHigh: Color(0xFF2E2E2E),
+      surfaceContainerHighest: Color(0xFF363636),
+      outline: Color(0xFF555555),
+      outlineVariant: Color(0xFF3A3A3A),
+      error: danger,
+      onError: Colors.white,
+    );
+
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: teal1,
-        brightness: Brightness.dark,
-        primary: teal1,
-        secondary: teal2,
-        surface: darkSurface,
-      ),
+      colorScheme: darkColorScheme,
       scaffoldBackgroundColor: darkBackground,
       textTheme: GoogleFonts.outfitTextTheme(
         ThemeData(brightness: Brightness.dark).textTheme,
@@ -69,8 +86,11 @@ class AppTheme {
         displayColor: darkTextPrimary,
       ),
       cardTheme: CardThemeData(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Color(0xFF3A3A3A), width: 1),
+        ),
         color: darkCard,
         surfaceTintColor: darkCard,
       ),
@@ -82,13 +102,26 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: darkSurface,
-        indicatorColor: teal1.withOpacity(0.2),
+        surfaceTintColor: Colors.transparent,
+        indicatorColor: teal1.withOpacity(0.25),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(color: tealDark);
+          }
+          return const IconThemeData(color: darkTextSecondary);
+        }),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const TextStyle(color: tealDark, fontSize: 12, fontWeight: FontWeight.w600);
+          }
+          return const TextStyle(color: darkTextSecondary, fontSize: 12);
+        }),
       ),
       drawerTheme: const DrawerThemeData(
         backgroundColor: darkSurface,
       ),
-      dividerTheme: DividerThemeData(
-        color: Colors.white.withOpacity(0.1),
+      dividerTheme: const DividerThemeData(
+        color: Color(0xFF333333),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -107,6 +140,10 @@ class AppTheme {
           if (states.contains(WidgetState.selected)) return teal1.withOpacity(0.3);
           return Colors.grey.withOpacity(0.3);
         }),
+      ),
+      expansionTileTheme: const ExpansionTileThemeData(
+        iconColor: darkTextSecondary,
+        collapsedIconColor: darkTextSecondary,
       ),
     );
   }

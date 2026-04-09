@@ -77,8 +77,6 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: _goToTab,
-        backgroundColor: Colors.white,
-        indicatorColor: AppTheme.teal1.withOpacity(0.15),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),

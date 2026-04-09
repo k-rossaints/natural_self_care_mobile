@@ -20,12 +20,13 @@ class PlantCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
       decoration: BoxDecoration(
-        color: cs.surface,
+        color: isDark ? AppTheme.darkCard : cs.surface,
         borderRadius: const BorderRadius.all(Radius.circular(20)),
-        boxShadow: [BoxShadow(
-          color: isDark ? Colors.black.withOpacity(0.3) : const Color(0x0F000000),
+        border: isDark ? Border.all(color: const Color(0xFF3A3A3A)) : null,
+        boxShadow: isDark ? null : [const BoxShadow(
+          color: Color(0x0F000000),
           blurRadius: 15,
-          offset: const Offset(0, 5),
+          offset: Offset(0, 5),
         )],
       ),
       child: Material(
@@ -77,8 +78,8 @@ class PlantCard extends StatelessWidget {
                         spacing: 6, runSpacing: 6,
                         children: plant.ailments.take(3).map((a) => Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(color: AppTheme.teal1.withOpacity(0.08), borderRadius: BorderRadius.circular(6)),
-                          child: Text(a, style: const TextStyle(fontSize: 11, color: AppTheme.teal1, fontWeight: FontWeight.w600)),
+                          decoration: BoxDecoration(color: (isDark ? AppTheme.tealDark : AppTheme.teal1).withOpacity(isDark ? 0.12 : 0.08), borderRadius: BorderRadius.circular(6)),
+                          child: Text(a, style: TextStyle(fontSize: 11, color: isDark ? AppTheme.tealDark : AppTheme.teal1, fontWeight: FontWeight.w600)),
                         )).toList(),
                       ),
                   ],

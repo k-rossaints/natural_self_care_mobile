@@ -109,7 +109,7 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
           const SizedBox(height: 30),
 
           // --- OPTIONS ---
-          const Text("OPTIONS", style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.teal1)),
+          Text("OPTIONS", style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).brightness == Brightness.dark ? AppTheme.tealDark : AppTheme.teal1)),
           SwitchListTile(
             title: const Text("Sauvegarder les images"),
             subtitle: const Text("Consomme plus d'espace de stockage"),
@@ -124,7 +124,7 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
           const Divider(height: 40),
 
           // --- CONTENU ---
-          const Text("CONTENU À TÉLÉCHARGER", style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.teal1)),
+          Text("CONTENU À TÉLÉCHARGER", style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).brightness == Brightness.dark ? AppTheme.tealDark : AppTheme.teal1)),
           const SizedBox(height: 10),
 
           _buildDownloadButton(
@@ -153,12 +153,12 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
           const SizedBox(height: 20),
 
           if (_isDownloading) ...[
-            const LinearProgressIndicator(color: AppTheme.teal1),
+            LinearProgressIndicator(color: Theme.of(context).brightness == Brightness.dark ? AppTheme.tealDark : AppTheme.teal1),
             const SizedBox(height: 10),
             Center(
               child: Text(
                 _statusMessage,
-                style: const TextStyle(color: AppTheme.teal1, fontWeight: FontWeight.bold),
+                style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? AppTheme.tealDark : AppTheme.teal1, fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -220,18 +220,20 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
     required VoidCallback onTap,
   }) {
     final isSynced = lastSync != null;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     return Card(
       elevation: 0,
-      color: Colors.grey.shade50,
+      color: isDark ? AppTheme.darkCard : Colors.grey.shade50,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
+        side: BorderSide(color: cs.outlineVariant),
       ),
       child: ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-          child: Icon(icon, color: AppTheme.teal1),
+          decoration: BoxDecoration(color: cs.surface, borderRadius: BorderRadius.circular(8)),
+          child: Icon(icon, color: isDark ? AppTheme.tealDark : AppTheme.teal1),
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Row(
@@ -251,7 +253,7 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
         trailing: _isDownloading
             ? null
             : IconButton(
-                icon: const Icon(Icons.download_rounded, color: AppTheme.teal1),
+                icon: Icon(Icons.download_rounded, color: Theme.of(context).brightness == Brightness.dark ? AppTheme.tealDark : AppTheme.teal1),
                 onPressed: onTap,
               ),
       ),

@@ -29,10 +29,10 @@ class ErrorView extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               isOffline ? "Pas de connexion" : "Erreur de chargement",
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.textDark,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),

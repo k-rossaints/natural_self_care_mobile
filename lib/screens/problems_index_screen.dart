@@ -119,20 +119,24 @@ class _ProblemsIndexScreenState extends ConsumerState<ProblemsIndexScreen> {
                               if (showHeader && _searchQuery.isEmpty)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 16, bottom: 8, left: 8),
-                                  child: Text(letter, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.teal2)),
+                                  child: Text(letter, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Theme.of(context).brightness == Brightness.dark ? AppTheme.tealDark : AppTheme.teal2)),
                                 ),
                               Card(
                                 margin: const EdgeInsets.only(bottom: 8),
                                 elevation: 0,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
                                 child: ExpansionTile(
                                   shape: const Border(),
-                                  title: Text(ailmentName, style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                                  trailing: Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(color: AppTheme.teal1.withOpacity(0.1), shape: BoxShape.circle),
-                                    child: Text(relatedPlants.length.toString(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.teal1)),
-                                  ),
+                                  title: Text(ailmentName, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
+                                  trailing: Builder(builder: (ctx) {
+                                    final dark = Theme.of(ctx).brightness == Brightness.dark;
+                                    final tc = dark ? AppTheme.tealDark : AppTheme.teal1;
+                                    return Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(color: tc.withOpacity(dark ? 0.15 : 0.1), shape: BoxShape.circle),
+                                      child: Text(relatedPlants.length.toString(), style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: tc)),
+                                    );
+                                  }),
                                   children: relatedPlants.map((plant) => ListTile(
                                     contentPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 8),
                                     leading: Hero(
@@ -141,7 +145,7 @@ class _ProblemsIndexScreenState extends ConsumerState<ProblemsIndexScreen> {
                                         width: 40, height: 40,
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
-                                          color: Colors.grey.shade100,
+                                          color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkCard : Colors.grey.shade100,
                                           image: plant.image != null ? DecorationImage(image: CachedNetworkImageProvider(_api.getImageUrl(plant.image!)), fit: BoxFit.cover) : null,
                                         ),
                                         child: plant.image == null ? const Icon(Icons.local_florist, size: 20, color: Colors.grey) : null,

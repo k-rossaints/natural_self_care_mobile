@@ -46,7 +46,7 @@ class AboutScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const Text("Qui nous sommes", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.teal1)),
+                  Text("Qui nous sommes", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: isDark ? AppTheme.tealDark : AppTheme.teal1)),
                   const SizedBox(height: 16),
                   Text(
                     "Cette plateforme est issue d'une enquête du Dr Bertrand Graz, médecin et du Dr Jacques Falquet, biochimiste.\n\n"
@@ -87,9 +87,9 @@ class AboutScreen extends StatelessWidget {
               style: TextStyle(fontSize: 16, height: 1.6, color: cs.onSurface),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               "Les mises à jour sont actuellement assurées par l'Association Santé Communautaire – Genève.",
-              style: TextStyle(fontSize: 16, height: 1.6, fontWeight: FontWeight.bold, color: AppTheme.teal1),
+              style: TextStyle(fontSize: 16, height: 1.6, fontWeight: FontWeight.bold, color: isDark ? AppTheme.tealDark : AppTheme.teal1),
             ),
 
             const SizedBox(height: 40),
@@ -137,11 +137,11 @@ class AboutScreen extends StatelessWidget {
                             const SizedBox(height: 12),
                             InkWell(
                               onTap: _launchEmail,
-                              child: const Row(
+                              child: Row(
                                 children: [
-                                  Icon(Icons.mail_outline, color: AppTheme.teal1, size: 18),
-                                  SizedBox(width: 6),
-                                  Text("contact@asc-geneve.ch", style: TextStyle(color: AppTheme.teal1, fontWeight: FontWeight.bold)),
+                                  Icon(Icons.mail_outline, color: isDark ? AppTheme.tealDark : AppTheme.teal1, size: 18),
+                                  const SizedBox(width: 6),
+                                  Text("contact@asc-geneve.ch", style: TextStyle(color: isDark ? AppTheme.tealDark : AppTheme.teal1, fontWeight: FontWeight.bold)),
                                 ],
                               ),
                             )

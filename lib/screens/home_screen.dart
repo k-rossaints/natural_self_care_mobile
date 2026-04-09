@@ -199,7 +199,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       icon: Icons.alt_route_outlined,
                       title: "Chemins de décision",
                       subtitle: "Trouver une solution selon vos symptômes.",
-                      color: const Color(0xFF2C3E50),
+                      color: AppTheme.teal1,
                       onTap: () => widget.onTabChange(2),
                     ),
                     const SizedBox(height: 16),
@@ -207,7 +207,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       icon: Icons.menu_book_outlined,
                       title: "Index des problèmes",
                       subtitle: "Liste de A à Z des pathologies traitées.",
-                      color: const Color(0xFF2C3E50),
+                      color: AppTheme.teal1,
                       onTap: () => widget.onTabChange(3),
                     ),
                   ],
@@ -248,12 +248,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         leading: Hero(
-          tag: heroTag, // L'image va "voler" vers la page suivante
+          tag: heroTag,
           child: Container(
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkCard : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(8),
             ),
             child: result.image != null
@@ -265,7 +265,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
         title: Text(result.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-        subtitle: const Text("Plante", style: TextStyle(fontSize: 12, color: AppTheme.teal1)),
+        subtitle: Text("Plante", style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark ? AppTheme.tealDark : AppTheme.teal1)),
         trailing: const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
         onTap: () {
           _searchFocus.unfocus(); // On ferme le clavier AVANT de partir
@@ -295,7 +295,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildNavCard({required IconData icon, required String title, required String subtitle, required Color color, required VoidCallback onTap}) {
-    return Card(elevation: 4, shadowColor: color.withOpacity(0.2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(16), child: Padding(padding: const EdgeInsets.all(20), child: Row(children: [Container(width: 50, height: 50, decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle), child: Icon(icon, color: color, size: 28)), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: color)), const SizedBox(height: 4), Text(subtitle, style: TextStyle(fontSize: 13, color: Colors.grey[600]))])), Icon(Icons.chevron_right, color: Colors.grey[300])]))));
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final displayColor = isDark ? (color == AppTheme.teal1 ? AppTheme.tealDark : cs.onSurface) : color;
+    return Card(elevation: isDark ? 0 : 4, shadowColor: color.withOpacity(0.2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: isDark ? BorderSide(color: cs.outlineVariant) : BorderSide.none), child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(16), child: Padding(padding: const EdgeInsets.all(20), child: Row(children: [Container(width: 50, height: 50, decoration: BoxDecoration(color: displayColor.withOpacity(0.12), shape: BoxShape.circle), child: Icon(icon, color: displayColor, size: 28)), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: displayColor)), const SizedBox(height: 4), Text(subtitle, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant))])), Icon(Icons.chevron_right, color: cs.onSurfaceVariant)]))));
   }
 
   // MODIFICATION ICI : On accepte l'URL et on utilise InkWell pour le clic

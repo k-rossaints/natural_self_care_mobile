@@ -372,6 +372,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
     final hasProcurement = (plant.procurementPicking != null && plant.procurementPicking!.isNotEmpty) ||
         (plant.procurementBuying != null && plant.procurementBuying!.isNotEmpty) ||
         (plant.procurementCulture != null && plant.procurementCulture!.isNotEmpty);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       body: CustomScrollView(
@@ -414,46 +415,49 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (_loadingDetails)
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 20.0),
-                      child: LinearProgressIndicator(color: AppTheme.teal1, backgroundColor: Color(0xFFE0F2F1)),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 20.0),
+                      child: LinearProgressIndicator(color: isDark ? AppTheme.tealDark : AppTheme.teal1, backgroundColor: isDark ? Colors.grey.shade800 : const Color(0xFFE0F2F1)),
                     ),
 
                   Wrap(spacing: 8, runSpacing: 8, children: [
                     if (plant.isClinicallyValidated)
-                      _buildBadge("Validé scientifiquement", Colors.orange.shade50, Colors.orange.shade900, icon: Icons.star),
+                      _buildBadge("Validé scientifiquement", isDark ? Colors.orange.withOpacity(0.15) : Colors.orange.shade50, isDark ? Colors.orange.shade300 : Colors.orange.shade900, icon: Icons.star),
                     if (plant.habitat != null && plant.habitat!.isNotEmpty)
-                      _buildBadge(plant.habitat!, Colors.grey.shade100, Colors.grey.shade800),
+                      _buildBadge(plant.habitat!, isDark ? Colors.grey.withOpacity(0.2) : Colors.grey.shade100, isDark ? Colors.grey.shade400 : Colors.grey.shade800),
                   ]),
                   const SizedBox(height: 12),
 
-                  Text(plant.scientificName ?? '', style: const TextStyle(fontStyle: FontStyle.italic, color: AppTheme.textGrey, fontSize: 18, fontFamily: 'Serif')),
+                  Text(plant.scientificName ?? '', style: TextStyle(fontStyle: FontStyle.italic, color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 18, fontFamily: 'Serif')),
 
                   if (plant.commonNames != null && plant.commonNames!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: Wrap(spacing: 6, children: plant.commonNames!.split(',').map((name) =>
+                      child: Wrap(spacing: 6, runSpacing: 4, children: plant.commonNames!.split(',').map((name) =>
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(4)),
-                            child: Text(name.trim(), style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.grey.withOpacity(0.2) : Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(name.trim(), style: TextStyle(color: isDark ? AppTheme.darkTextSecondary : Colors.grey.shade700, fontSize: 12)),
                           )
                         ).toList()),
                     ),
                   const SizedBox(height: 24),
 
-                  Text(plant.descriptionShort ?? "Description en cours de chargement...", style: const TextStyle(fontSize: 16, height: 1.6, color: AppTheme.textDark)),
+                  Text(plant.descriptionShort ?? "Description en cours de chargement...", style: TextStyle(fontSize: 16, height: 1.6, color: Theme.of(context).colorScheme.onSurface)),
                   const SizedBox(height: 16),
 
                   if (plant.ailments.isNotEmpty)
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      const Text("Indiqué pour :", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      Text("Indiqué pour :", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Theme.of(context).colorScheme.onSurface)),
                       const SizedBox(height: 6),
                       Wrap(spacing: 6, runSpacing: 6, children: plant.ailments.map((a) =>
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(color: AppTheme.teal1.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                          child: Text(a, style: const TextStyle(color: AppTheme.teal1, fontWeight: FontWeight.bold, fontSize: 13)),
+                          decoration: BoxDecoration(color: (isDark ? AppTheme.tealDark : AppTheme.teal1).withOpacity(isDark ? 0.12 : 0.1), borderRadius: BorderRadius.circular(20)),
+                          child: Text(a, style: TextStyle(color: isDark ? AppTheme.tealDark : AppTheme.teal1, fontWeight: FontWeight.bold, fontSize: 13)),
                         )
                       ).toList()),
                     ]),
@@ -473,15 +477,18 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                             text: plant.safetyPrecautions!,
                             maxLines: 4,
                             selectable: true,
-                            style: const TextStyle(color: Color(0xFF7F1D1D), fontWeight: FontWeight.w500, height: 1.5),
+                            style: TextStyle(color: isDark ? Colors.red.shade200 : const Color(0xFF7F1D1D), fontWeight: FontWeight.w500, height: 1.5),
                           ),
                         if (plant.sideEffects != null && plant.sideEffects!.isNotEmpty) ...[
                           const SizedBox(height: 16),
                           Container(
                             padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                            decoration: BoxDecoration(
+                              color: isDark ? Theme.of(context).colorScheme.surfaceContainerHighest : Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              const Row(children: [Icon(Icons.info_outline, size: 16, color: AppTheme.danger), SizedBox(width: 6), Text("Effets secondaires possibles", style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.danger))]),
+                              Row(children: [const Icon(Icons.info_outline, size: 16, color: AppTheme.danger), const SizedBox(width: 6), Flexible(child: Text("Effets secondaires possibles", style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.danger)))]),
                               const SizedBox(height: 6),
                               ExpandableText(text: plant.sideEffects!, maxLines: 3, selectable: true, style: const TextStyle(fontSize: 14, height: 1.5)),
                             ]),
@@ -500,15 +507,15 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                       initiallyExpanded: true,
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         if (plant.usagePreparation != null && plant.usagePreparation!.isNotEmpty) ...[
-                          const Text("PRÉPARATION & DOSAGE", style: TextStyle(color: AppTheme.teal2, fontWeight: FontWeight.bold, fontSize: 12)),
+                          Text("PRÉPARATION & DOSAGE", style: TextStyle(color: isDark ? AppTheme.tealDark : AppTheme.teal2, fontWeight: FontWeight.bold, fontSize: 12)),
                           const SizedBox(height: 4),
-                          ExpandableText(text: plant.usagePreparation!, maxLines: 4, selectable: true, style: const TextStyle(height: 1.5)),
+                          ExpandableText(text: plant.usagePreparation!, maxLines: 4, selectable: true, style: TextStyle(height: 1.5, color: Theme.of(context).colorScheme.onSurface)),
                         ],
                         if (plant.usageDuration != null && plant.usageDuration!.isNotEmpty) ...[
                           const SizedBox(height: 16),
-                          const Text("DURÉE", style: TextStyle(color: AppTheme.teal2, fontWeight: FontWeight.bold, fontSize: 12)),
+                          Text("DURÉE", style: TextStyle(color: isDark ? AppTheme.tealDark : AppTheme.teal2, fontWeight: FontWeight.bold, fontSize: 12)),
                           const SizedBox(height: 4),
-                          SelectableText(plant.usageDuration!, style: const TextStyle(height: 1.5)),
+                          SelectableText(plant.usageDuration!, style: TextStyle(height: 1.5, color: Theme.of(context).colorScheme.onSurface)),
                         ]
                       ]),
                     ),
@@ -523,14 +530,17 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                       initiallyExpanded: false,
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         if (plant.plantType != null && plant.plantType!.isNotEmpty)
-                          Padding(padding: const EdgeInsets.only(bottom: 8), child: Text("Type : ${plant.plantType}", style: const TextStyle(fontWeight: FontWeight.bold))),
+                          Padding(padding: const EdgeInsets.only(bottom: 8), child: Text("Type : ${plant.plantType}", style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface))),
                         if (plant.descriptionVisual != null && plant.descriptionVisual!.isNotEmpty)
-                          ExpandableText(text: plant.descriptionVisual!, maxLines: 4, selectable: true, style: const TextStyle(height: 1.5)),
+                          ExpandableText(text: plant.descriptionVisual!, maxLines: 4, selectable: true, style: TextStyle(height: 1.5, color: Theme.of(context).colorScheme.onSurface)),
                         if (hasProcurement) ...[
                           const SizedBox(height: 16),
                           Container(
                             padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(color: const Color(0xFFF0F9FF), borderRadius: BorderRadius.circular(8)),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.blue.withOpacity(0.1) : const Color(0xFFF0F9FF),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                             child: Column(children: [
                               if (plant.procurementPicking != null && plant.procurementPicking!.isNotEmpty) _supplyRow(Icons.park, "Cueillette", plant.procurementPicking!),
                               if (plant.procurementBuying != null && plant.procurementBuying!.isNotEmpty) _supplyRow(Icons.shopping_bag, "Achat", plant.procurementBuying!),
@@ -542,11 +552,15 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                           const SizedBox(height: 16),
                           Container(
                             padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.orange.shade200)),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.orange.withOpacity(0.1) : const Color(0xFFFFF7ED),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.orange.shade200),
+                            ),
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Row(children: [Icon(Icons.warning_amber, size: 16, color: Colors.orange.shade800), const SizedBox(width: 6), Text("Ne pas confondre avec :", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange.shade800))]),
+                              Row(children: [Icon(Icons.warning_amber, size: 16, color: Colors.orange.shade400), const SizedBox(width: 6), Flexible(child: Text("Ne pas confondre avec :", style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.orange.shade300 : Colors.orange.shade800)))]),
                               const SizedBox(height: 6),
-                              ExpandableText(text: plant.confusionRisks!, maxLines: 3, selectable: true, style: TextStyle(fontSize: 14, color: Colors.orange.shade900, height: 1.5)),
+                              ExpandableText(text: plant.confusionRisks!, maxLines: 3, selectable: true, style: TextStyle(fontSize: 14, color: isDark ? Colors.orange.shade200 : Colors.orange.shade900, height: 1.5)),
                             ]),
                           )
                         ]
@@ -558,14 +572,14 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                     _PlantSection(
                       title: "Informations scientifiques",
                       icon: Icons.science,
-                      accentColor: Colors.grey.shade800,
-                      bgColor: Colors.grey.shade100,
+                      accentColor: isDark ? Colors.grey.shade400 : Colors.grey.shade800,
+                      bgColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
                       initiallyExpanded: false,
                       child: ExpandableText(
                         text: plant.scientificReferences!,
                         maxLines: 4,
                         selectable: true,
-                        style: const TextStyle(height: 1.5, fontSize: 14, color: AppTheme.textDark),
+                        style: TextStyle(height: 1.5, fontSize: 14, color: Theme.of(context).colorScheme.onSurface),
                       ),
                     ),
 
@@ -574,8 +588,8 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                     _PlantSection(
                       title: "Sources & Références",
                       icon: Icons.menu_book,
-                      accentColor: Colors.grey,
-                      bgColor: Colors.grey.shade50,
+                      accentColor: isDark ? Colors.grey.shade400 : Colors.grey,
+                      bgColor: isDark ? Colors.grey.shade800 : Colors.grey.shade50,
                       initiallyExpanded: false,
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         ..._references.map((ref) => Padding(
@@ -601,13 +615,16 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
   }
 
   Widget _buildBadge(String text, Color bg, Color textCol, {IconData? icon}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20), border: Border.all(color: textCol.withOpacity(0.2))),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-          if (icon != null) ...[Icon(icon, size: 14, color: textCol), const SizedBox(width: 4)],
-          Text(text, style: TextStyle(color: textCol, fontWeight: FontWeight.bold, fontSize: 12)),
-      ]),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 280),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20), border: Border.all(color: textCol.withOpacity(0.2))),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+            if (icon != null) ...[Icon(icon, size: 14, color: textCol), const SizedBox(width: 4)],
+            Flexible(child: Text(text, style: TextStyle(color: textCol, fontWeight: FontWeight.bold, fontSize: 12))),
+        ]),
+      ),
     );
   }
 
@@ -624,12 +641,13 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
   }
 
   Widget _supplyRow(IconData icon, String label, String value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(icon, size: 16, color: Colors.blue), const SizedBox(width: 8),
-        Text("$label : ", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
+        Icon(icon, size: 16, color: isDark ? Colors.blue.shade300 : Colors.blue), const SizedBox(width: 8),
+        Text("$label : ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Theme.of(context).colorScheme.onSurface)),
+        Expanded(child: Text(value, style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface))),
       ]),
     );
   }
@@ -655,13 +673,15 @@ class _PlantSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = Theme.of(context).colorScheme.surface;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: surfaceColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: accentColor.withOpacity(0.3)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 5, offset: const Offset(0, 2))],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.15 : 0.04), blurRadius: 5, offset: const Offset(0, 2))],
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -671,8 +691,8 @@ class _PlantSection extends StatelessWidget {
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          backgroundColor: bgColor.withOpacity(0.5),
-          collapsedBackgroundColor: Colors.white,
+          backgroundColor: bgColor.withOpacity(isDark ? 0.12 : 0.5),
+          collapsedBackgroundColor: surfaceColor,
           leading: Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(8)),

@@ -20,16 +20,17 @@ class GlobalSearchDelegate extends SearchDelegate {
 
   @override
   ThemeData appBarTheme(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Theme.of(context).copyWith(
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.white,
+      appBarTheme: AppBarTheme(
+        backgroundColor: cs.surface,
         elevation: 0,
-        iconTheme: IconThemeData(color: AppTheme.textDark),
-        titleTextStyle: TextStyle(color: AppTheme.textGrey, fontSize: 18),
+        iconTheme: IconThemeData(color: cs.onSurface),
+        titleTextStyle: TextStyle(color: cs.onSurfaceVariant, fontSize: 18),
       ),
-      inputDecorationTheme: const InputDecorationTheme(
+      inputDecorationTheme: InputDecorationTheme(
         border: InputBorder.none,
-        hintStyle: TextStyle(color: Colors.grey),
+        hintStyle: TextStyle(color: cs.onSurfaceVariant),
       ),
     );
   }
@@ -39,7 +40,7 @@ class GlobalSearchDelegate extends SearchDelegate {
     return [
       if (query.isNotEmpty)
         IconButton(
-          icon: const Icon(Icons.clear, color: AppTheme.teal1),
+          icon: Icon(Icons.clear, color: Theme.of(context).brightness == Brightness.dark ? AppTheme.tealDark : AppTheme.teal1),
           onPressed: () => query = '',
         ),
     ];
@@ -48,7 +49,7 @@ class GlobalSearchDelegate extends SearchDelegate {
   @override
   Widget? buildLeading(BuildContext context) {
     return IconButton(
-      icon: const Icon(Icons.arrow_back, color: AppTheme.textDark),
+      icon: Icon(Icons.arrow_back, color: Theme.of(context).colorScheme.onSurface),
       onPressed: () => close(context, null),
     );
   }
@@ -96,6 +97,9 @@ class GlobalSearchDelegate extends SearchDelegate {
       );
     }
 
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -108,12 +112,12 @@ class GlobalSearchDelegate extends SearchDelegate {
           ...matchingSymptoms.map((s) => Card(
             margin: const EdgeInsets.only(bottom: 12),
             elevation: 0,
-            color: const Color(0xFFF0F9FF),
+            color: isDark ? Colors.blue.withOpacity(0.1) : const Color(0xFFF0F9FF),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.blue.withOpacity(0.2))),
             child: ListTile(
-              leading: const CircleAvatar(backgroundColor: Colors.white, child: Icon(Icons.alt_route, color: Colors.blue)),
-              title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-              subtitle: Text("Lancer le diagnostic", style: TextStyle(color: Colors.blue.shade700, fontSize: 12)),
+              leading: CircleAvatar(backgroundColor: cs.surface, child: Icon(Icons.alt_route, color: isDark ? Colors.blue.shade300 : Colors.blue)),
+              title: Text(s.name, style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
+              subtitle: Text("Lancer le diagnostic", style: TextStyle(color: isDark ? Colors.blue.shade300 : Colors.blue.shade700, fontSize: 12)),
               onTap: () {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => DecisionSessionScreen(symptom: s)));
               },
@@ -130,24 +134,24 @@ class GlobalSearchDelegate extends SearchDelegate {
           ),
           ...matchingPlants.map((p) => Card(
             margin: const EdgeInsets.only(bottom: 12),
-            elevation: 2,
+            elevation: isDark ? 0 : 2,
             shadowColor: Colors.black.withOpacity(0.1),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: isDark ? BorderSide(color: cs.outlineVariant) : BorderSide.none),
             child: ListTile(
               contentPadding: const EdgeInsets.all(8),
               leading: Container(
                 width: 50, height: 50,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
-                  color: Colors.grey.shade100,
+                  color: isDark ? AppTheme.darkCard : Colors.grey.shade100,
                   image: p.image != null
                       ? DecorationImage(image: NetworkImage(_api.getImageUrl(p.image!)), fit: BoxFit.cover)
                       : null,
                 ),
                 child: p.image == null ? const Icon(Icons.local_florist, color: Colors.grey) : null,
               ),
-              title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text(p.scientificName ?? '', style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 12)),
+              title: Text(p.name, style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface)),
+              subtitle: Text(p.scientificName ?? '', style: TextStyle(fontStyle: FontStyle.italic, fontSize: 12, color: cs.onSurfaceVariant)),
               onTap: () {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => PlantDetailScreen(plant: p, heroTag: 'search-plant-${p.id}')));
               },

@@ -26,6 +26,8 @@ class _ExpandableTextState extends State<ExpandableText> {
   @override
   Widget build(BuildContext context) {
     final style = widget.style ?? const TextStyle(fontSize: 15, height: 1.5);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tealColor = isDark ? AppTheme.tealDark : AppTheme.teal1;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -62,8 +64,8 @@ class _ExpandableTextState extends State<ExpandableText> {
                   children: [
                     Text(
                       _expanded ? 'Voir moins' : 'Voir plus',
-                      style: const TextStyle(
-                        color: AppTheme.teal1,
+                      style: TextStyle(
+                        color: tealColor,
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                       ),
@@ -71,7 +73,7 @@ class _ExpandableTextState extends State<ExpandableText> {
                     const SizedBox(width: 4),
                     Icon(
                       _expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                      color: AppTheme.teal1,
+                      color: tealColor,
                       size: 18,
                     ),
                   ],

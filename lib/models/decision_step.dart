@@ -23,9 +23,10 @@ class DecisionStep {
 
   factory DecisionStep.fromJson(Map<String, dynamic> json) {
     // Extraction de la liste des plantes depuis la structure imbriquée de Directus
-    // structure : recommended_remedies[ { plants_id: { ... } }, ... ]
+    // structure API : recommended_remedies[ { plants_id: { ... } }, ... ]
+    // structure cache : saved_plants[ { id, name, ... }, ... ]
     List<Plant> extractedPlants = [];
-    
+
     if (json['recommended_remedies'] != null && json['recommended_remedies'] is List) {
       for (var item in json['recommended_remedies']) {
         if (item['plants_id'] != null && item['plants_id'] is Map) {
@@ -33,6 +34,17 @@ class DecisionStep {
             extractedPlants.add(Plant.fromJson(item['plants_id']));
           } catch (e) {
             debugPrint("Erreur parsing plante dans step: $e");
+          }
+        }
+      }
+    } else if (json['saved_plants'] != null && json['saved_plants'] is List) {
+      // Chargement depuis le cache offline (toJson sauvegarde sous 'saved_plants')
+      for (var item in json['saved_plants']) {
+        if (item is Map<String, dynamic>) {
+          try {
+            extractedPlants.add(Plant.fromJson(item));
+          } catch (e) {
+            debugPrint("Erreur parsing plante depuis cache: $e");
           }
         }
       }
@@ -57,7 +69,9 @@ class DecisionStep {
       'next_step_yes': nextStepYes,
       'next_step_no': nextStepNo,
       'is_emergency': isEmergency,
-      // On sauvegarde la liste des plantes directement sous forme simplifiée
+      // Sauvegarde au format API (recommended_remedies) pour que fromJson les relise directement
+      'recommended_remedies': recommendedPlants.map((p) => {'plants_id': p.toJson()}).toList(),
+      // Garde aussi saved_plants pour compatibilite avec anciens caches
       'saved_plants': recommendedPlants.map((p) => p.toJson()).toList(),
     };
   }

@@ -25,7 +25,7 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
   List<Plant> _plants = [];
 
   String _searchQuery = '';
-  String _selectedPlantFilter = 'Tous les thèmes';
+  String _selectedPlantFilter = 'Tous les themes';
 
   bool _loadingFilters = true;
   bool _loadingRefs = true;
@@ -80,7 +80,7 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
   Map<String, List<Reference>> get _filteredGroupedReferences {
     final search = _searchQuery.toLowerCase();
     final filtered = _allReferences.where((ref) {
-      final matchesPlant = _selectedPlantFilter == 'Tous les thèmes' ||
+      final matchesPlant = _selectedPlantFilter == 'Tous les themes' ||
           ref.plantName == _selectedPlantFilter;
       if (!matchesPlant) return false;
       if (search.isEmpty) return true;
@@ -98,10 +98,11 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
   Widget build(BuildContext context) {
     final groupedRefs = _filteredGroupedReferences;
     final sortedKeys = groupedRefs.keys.toList()..sort();
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Démarche scientifique')),
-      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(title: const Text('Demarche scientifique')),
       body: _hasError && _allReferences.isEmpty && _pendingReferences.isEmpty && _genericReferences.isEmpty
           ? ErrorView(isOffline: true, onRetry: _loadData)
           : CustomScrollView(
@@ -113,25 +114,25 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SelectableText(
-                    'Découvrez notre démarche.',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.teal1),
+                  Text(
+                    'Decouvrez notre demarche.',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: isDark ? AppTheme.tealDark : AppTheme.teal1),
                   ),
                   const SizedBox(height: 16),
-                  const SelectableText(
-                    "Les plantes présentées ont fait l'objet de recherches cliniques complètes.\nElles sont validées comme des médicaments conventionnels.",
-                    style: TextStyle(fontSize: 16, height: 1.5, color: AppTheme.textDark),
+                  Text(
+                    "Les plantes presentees ont fait l'objet de recherches cliniques completes.\nElles sont validees comme des medicaments conventionnels.",
+                    style: TextStyle(fontSize: 16, height: 1.5, color: cs.onSurface),
                   ),
                   const SizedBox(height: 30),
-                  const Text('Bibliographies particulières',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.teal2)),
+                  Text('Bibliographies particulieres',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? AppTheme.tealDark : AppTheme.teal2)),
                   const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: cs.surface,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300)),
+                        border: Border.all(color: cs.outlineVariant)),
                     child: _loadingFilters && _plants.isEmpty
                         ? const Padding(
                             padding: EdgeInsets.symmetric(vertical: 12),
@@ -141,10 +142,12 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
                             child: DropdownButton<String>(
                               isExpanded: true,
                               value: _selectedPlantFilter,
-                              icon: const Icon(Icons.filter_list, color: AppTheme.teal1),
+                              dropdownColor: isDark ? AppTheme.darkCard : Colors.white,
+                              icon: Icon(Icons.filter_list, color: isDark ? AppTheme.tealDark : AppTheme.teal1),
+                              style: TextStyle(color: cs.onSurface, fontSize: 14),
                               items: [
-                                const DropdownMenuItem(value: 'Tous les thèmes', child: Text('Tous les thèmes')),
-                                ..._plants.map((p) => DropdownMenuItem(value: p.name, child: Text(p.name))),
+                                DropdownMenuItem(value: 'Tous les themes', child: Text('Tous les themes', style: TextStyle(color: cs.onSurface))),
+                                ..._plants.map((p) => DropdownMenuItem(value: p.name, child: Text(p.name, style: TextStyle(color: cs.onSurface)))),
                               ],
                               onChanged: (val) => setState(() => _selectedPlantFilter = val!),
                             ),
@@ -153,13 +156,16 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     decoration: InputDecoration(
-                      hintText: 'Rechercher un mot-clé...',
+                      hintText: 'Rechercher un mot-cle...',
+                      hintStyle: TextStyle(color: cs.onSurfaceVariant),
                       prefixIcon: const Icon(Icons.search),
                       filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                      fillColor: isDark ? AppTheme.darkCard : Colors.white,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: cs.outlineVariant)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: cs.outlineVariant)),
                       contentPadding: const EdgeInsets.symmetric(vertical: 14),
                     ),
+                    style: TextStyle(color: cs.onSurface),
                     onChanged: (val) => setState(() => _searchQuery = val),
                   ),
                 ],
@@ -167,7 +173,7 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
             ),
           ),
 
-          // RÉFÉRENCES EN ACCORDÉONS
+          // REFERENCES EN ACCORDEONS
           if (_loadingRefs)
             const SliverToBoxAdapter(
               child: Padding(
@@ -176,14 +182,14 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
                     CircularProgressIndicator(),
                     SizedBox(height: 10),
-                    Text('Chargement des références...', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    Text('Chargement des references...', style: TextStyle(color: Colors.grey, fontSize: 12)),
                   ]),
                 ),
               ),
             )
           else if (sortedKeys.isEmpty)
-            const SliverToBoxAdapter(
-              child: Padding(padding: EdgeInsets.all(20), child: Center(child: Text('Aucune référence trouvée.'))),
+            SliverToBoxAdapter(
+              child: Padding(padding: const EdgeInsets.all(20), child: Center(child: Text('Aucune reference trouvee.', style: TextStyle(color: cs.onSurfaceVariant)))),
             )
           else
             SliverPadding(
@@ -199,16 +205,16 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
               ),
             ),
 
-          // ÉTUDES PROMETTEUSES
+          // ETUDES PROMETTEUSES
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 40, 20, 16),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Études prometteuses (Hors fiches)',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.teal2)),
+                Text('Etudes prometteuses (Hors fiches)',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? AppTheme.tealDark : AppTheme.teal2)),
                 const SizedBox(height: 8),
-                const Text("Ces plantes font l'objet d'études intéressantes mais n'ont pas encore de fiche dédiée.",
-                    style: TextStyle(color: Colors.grey)),
+                Text("Ces plantes font l'objet d'etudes interessantes mais n'ont pas encore de fiche dediee.",
+                    style: TextStyle(color: cs.onSurfaceVariant)),
               ]),
             ),
           ),
@@ -225,23 +231,23 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
                       elevation: 0,
-                      color: const Color(0xFFF0FDFA),
+                      color: isDark ? AppTheme.teal1.withOpacity(0.08) : const Color(0xFFF0FDFA),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: AppTheme.teal1.withOpacity(0.1))),
+                          side: BorderSide(color: (isDark ? AppTheme.tealDark : AppTheme.teal1).withOpacity(0.2))),
                       child: Theme(
                         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                         child: ExpansionTile(
                           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                           title: Text(item.topic,
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.teal2, fontSize: 16)),
+                              style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? AppTheme.tealDark : AppTheme.teal2, fontSize: 16)),
                           subtitle: Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: ExpandableText(
                               text: item.claim,
                               maxLines: 2,
-                              style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textDark, fontSize: 14),
+                              style: TextStyle(fontWeight: FontWeight.w600, color: cs.onSurface, fontSize: 14),
                             ),
                           ),
                           children: [
@@ -251,15 +257,15 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.8),
+                                  color: isDark ? cs.surfaceContainerHighest : Colors.white.withOpacity(0.8),
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.grey.shade200),
+                                  border: Border.all(color: cs.outlineVariant),
                                 ),
                                 child: SelectableText(
                                   item.scientificData,
                                   style: TextStyle(
                                       fontSize: 15,
-                                      color: Colors.blueGrey.shade900,
+                                      color: cs.onSurface,
                                       height: 1.6,
                                       fontWeight: FontWeight.w500,
                                       fontFamily: 'Courier'),
@@ -276,36 +282,37 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
               ),
             ),
 
-          // OUVRAGES GÉNÉRAUX
+          // OUVRAGES GENERAUX
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const SizedBox(height: 30),
-                const Text('Ouvrages généraux',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.teal2)),
+                Text('Ouvrages generaux',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? AppTheme.tealDark : AppTheme.teal2)),
                 const SizedBox(height: 16),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                      color: AppTheme.teal1.withOpacity(0.06),
-                      borderRadius: BorderRadius.circular(12)),
+                      color: (isDark ? AppTheme.tealDark : AppTheme.teal1).withOpacity(isDark ? 0.08 : 0.06),
+                      borderRadius: BorderRadius.circular(12),
+                      border: isDark ? Border.all(color: cs.outlineVariant) : null),
                   child: _loadingFilters && _genericReferences.isEmpty
                       ? const Center(child: CircularProgressIndicator())
                       : Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: _genericReferences.isEmpty
-                              ? [const Text('Aucun ouvrage chargé.')]
+                              ? [Text('Aucun ouvrage charge.', style: TextStyle(color: cs.onSurfaceVariant))]
                               : _genericReferences
                                   .map((g) => Padding(
                                         padding: const EdgeInsets.only(bottom: 12),
                                         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                          const Icon(Icons.book, size: 16, color: AppTheme.teal1),
+                                          Icon(Icons.book, size: 16, color: isDark ? AppTheme.tealDark : AppTheme.teal1),
                                           const SizedBox(width: 10),
                                           Expanded(
                                               child: SelectableText(g.name,
-                                                  style: const TextStyle(fontWeight: FontWeight.w500, height: 1.4))),
+                                                  style: TextStyle(fontWeight: FontWeight.w500, height: 1.4, color: cs.onSurface))),
                                         ]),
                                       ))
                                   .toList(),
@@ -319,7 +326,9 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
       ),
     );
   }
-}class _ReferenceAccordion extends StatelessWidget {
+}
+
+class _ReferenceAccordion extends StatelessWidget {
   final String plantName;
   final List<Reference> references;
 
@@ -327,35 +336,38 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       elevation: 0,
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: Colors.grey.shade200)),
+          side: BorderSide(color: cs.outlineVariant)),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           title: Text(plantName,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.teal1)),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? AppTheme.tealDark : AppTheme.teal1)),
           trailing: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-                color: AppTheme.teal1.withOpacity(0.1),
+                color: (isDark ? AppTheme.tealDark : AppTheme.teal1).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12)),
-            child: Text('${references.length} réf.',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.teal1)),
+            child: Text('${references.length} ref.',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? AppTheme.tealDark : AppTheme.teal1)),
           ),
           children: references
               .map((ref) => Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      const Text('• ', style: TextStyle(color: Colors.grey)),
+                      Text('- ', style: TextStyle(color: cs.onSurfaceVariant)),
                       Expanded(
                         child: SelectableText(ref.fullReference,
-                            style: const TextStyle(fontSize: 13, height: 1.4, color: Colors.black87)),
+                            style: TextStyle(fontSize: 13, height: 1.4, color: cs.onSurface)),
                       ),
                     ]),
                   ))
