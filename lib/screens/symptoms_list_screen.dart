@@ -72,16 +72,22 @@ class _SymptomsListScreenState extends ConsumerState<SymptomsListScreen> {
               Container(
                 color: Theme.of(context).colorScheme.surface,
                 padding: const EdgeInsets.all(16),
-                child: TextField(
-                  onChanged: (val) => _runFilter(symptoms, val),
-                  decoration: InputDecoration(
-                    hintText: "Rechercher un symptôme...",
-                    hintStyle: TextStyle(color: Colors.grey.shade400),
-                    prefixIcon: const Icon(Icons.search, color: AppTheme.teal1),
-                    filled: true,
-                    fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2A2A2A) : const Color(0xFFF1F5F9),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkCard : Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    border: Theme.of(context).brightness == Brightness.dark ? Border.all(color: const Color(0xFF3A3A3A)) : null,
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.08), blurRadius: Theme.of(context).brightness == Brightness.dark ? 4 : 10, offset: const Offset(0, 2))],
+                  ),
+                  child: TextField(
+                    onChanged: (val) => _runFilter(symptoms, val),
+                    decoration: InputDecoration(
+                      hintText: "Rechercher un symptôme...",
+                      hintStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkTextSecondary : Colors.grey.shade400),
+                      prefixIcon: Icon(Icons.search, color: Theme.of(context).brightness == Brightness.dark ? AppTheme.tealDark : AppTheme.teal1),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    ),
                   ),
                 ),
               ),

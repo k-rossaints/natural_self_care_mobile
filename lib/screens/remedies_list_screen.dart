@@ -184,8 +184,9 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
                         Container(
                           decoration: BoxDecoration(
                             color: isDark ? AppTheme.darkCard : Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)],
+                            borderRadius: BorderRadius.circular(30),
+                            border: isDark ? Border.all(color: const Color(0xFF3A3A3A)) : null,
+                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.08), blurRadius: isDark ? 4 : 10, offset: const Offset(0, 2))],
                           ),
                           child: TextField(
                             focusNode: _searchFocus,
@@ -200,9 +201,9 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
                             decoration: InputDecoration(
                               hintText: "Plante, symptôme, habitat...",
                               hintStyle: TextStyle(color: isDark ? AppTheme.darkTextSecondary : Colors.grey.shade400, fontSize: 14),
-                              prefixIcon: const Icon(Icons.search, color: AppTheme.teal1),
+                              prefixIcon: Icon(Icons.search, color: isDark ? AppTheme.tealDark : AppTheme.teal1),
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                             ),
                           ),
                         ),
@@ -274,11 +275,12 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
     final isEmpty = items.isEmpty;
     return Container(
       height: 45,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
         color: value != null ? tealColor.withOpacity(isDark ? 0.15 : 0.1) : (isDark ? AppTheme.darkCard : (isEmpty ? Colors.grey.shade100 : Colors.white)),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: value != null ? tealColor : (isDark ? Colors.grey.shade600 : Colors.grey.shade400)),
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(color: value != null ? tealColor : (isDark ? const Color(0xFF3A3A3A) : Colors.grey.shade300)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.15 : 0.04), blurRadius: 4, offset: const Offset(0, 1))],
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
