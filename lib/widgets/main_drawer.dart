@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import '../screens/about_screen.dart';
 import '../screens/methodology_screen.dart';
-import '../screens/offline_settings_screen.dart'; // <--- IMPORT
+import '../screens/offline_settings_screen.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/theme_provider.dart';
 
-class MainDrawer extends StatelessWidget {
+class MainDrawer extends ConsumerWidget {
   final Function(int) onTabChange;
 
   const MainDrawer({super.key, required this.onTabChange});
@@ -21,9 +23,11 @@ class MainDrawer extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tealColor = isDark ? AppTheme.tealDark : AppTheme.teal1;
+    final themeMode = ref.watch(themeModeProvider);
+    final isDarkMode = themeMode == ThemeMode.dark;
 
     return Drawer(
       child: Column(
@@ -90,7 +94,6 @@ class MainDrawer extends StatelessWidget {
 
                 const Divider(),
 
-                // --- NOUVEAU BOUTON HORS LIGNE ---
                 ListTile(
                   leading: const Icon(Icons.download_for_offline, color: Colors.orange),
                   title: const Text('Mode Hors Ligne', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -98,6 +101,16 @@ class MainDrawer extends StatelessWidget {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (context) => const OfflineSettingsScreen()));
                   },
+                ),
+
+                ListTile(
+                  leading: Icon(isDarkMode ? Icons.light_mode : Icons.dark_mode, color: tealColor),
+                  title: Text(isDarkMode ? 'Mode clair' : 'Mode sombre'),
+                  trailing: Switch(
+                    value: isDarkMode,
+                    onChanged: (_) => ref.read(themeModeProvider.notifier).toggle(),
+                    activeColor: AppTheme.teal1,
+                  ),
                 ),
 
                 const Divider(),
@@ -120,7 +133,7 @@ class MainDrawer extends StatelessWidget {
                 ),
 
                 const Divider(),
-                
+
                 ListTile(
                   leading: const Icon(Icons.facebook, color: Color(0xFF1877F2)),
                   title: const Text('Suivez-nous sur Facebook', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -143,7 +156,7 @@ class MainDrawer extends StatelessWidget {
               ],
             ),
           ),
-          
+
           const Padding(
             padding: EdgeInsets.all(16.0),
             child: Text("v1.0.0 - ASC Genève", style: TextStyle(color: Colors.grey, fontSize: 12)),
