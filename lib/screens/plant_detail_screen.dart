@@ -8,7 +8,7 @@ import 'package:http/http.dart' as http;
 import '../models/plant.dart';
 import '../models/reference.dart';
 import '../services/api_service.dart';
-import '../services/offline_service.dart'; // N'oublie pas cet import pour le mode hors ligne
+import '../services/offline_service.dart';
 import '../theme.dart';
 import '../widgets/expandable_text.dart';
 
@@ -40,7 +40,6 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
 
   Future<void> _loadFullDetails() async {
     try {
-      // 1. Tentative de chargement via Internet
       final fullPlant = await _api.getPlantDetails(widget.plant.id);
       if (mounted) {
         setState(() {
@@ -50,22 +49,17 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
       }
     } catch (e) {
       debugPrint("Info: Impossible de charger détails depuis l'API ($e)");
-
-      // 2. FALLBACK HORS LIGNE : On cherche dans la base locale
       try {
         final localPlants = await OfflineService().getLocalPlants();
-        // On cherche la plante correspondante par son ID dans la liste complète
         final fullLocalPlant = localPlants.firstWhere((p) => p.id == widget.plant.id);
-
         if (mounted) {
           setState(() {
-            _displayPlant = fullLocalPlant; // On met à jour avec les infos locales complètes
+            _displayPlant = fullLocalPlant;
             _loadingDetails = false;
           });
           debugPrint("✅ Détails chargés depuis la sauvegarde locale !");
         }
       } catch (notFound) {
-        // La plante n'est pas dans la sauvegarde
         debugPrint("Plante non trouvée en local.");
         if (mounted) setState(() => _loadingDetails = false);
       }
@@ -86,20 +80,15 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
     Share.share('Découvrez les bienfaits de ${_displayPlant.name} sur Natural Self-Care : https://www.natural-self-care.ch/plantes/${_displayPlant.slug ?? ""}');
   }
 
-  // ==========================================
-  // GÉNÉRATION DU PDF (VERSION FINALE STABLE)
-  // ==========================================
   Future<void> _generatePdf(BuildContext context) async {
     final pdf = pw.Document();
     final plant = _displayPlant;
 
-    // 1. Polices
     final fontRegular = await PdfGoogleFonts.openSansRegular();
     final fontBold = await PdfGoogleFonts.openSansBold();
     final fontItalic = await PdfGoogleFonts.openSansItalic();
     final iconFont = await PdfGoogleFonts.materialIcons();
 
-    // 2. Image
     pw.MemoryImage? pdfImage;
     if (plant.image != null) {
       try {
@@ -123,10 +112,8 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
           icons: iconFont,
         ),
         margin: const pw.EdgeInsets.symmetric(horizontal: 40, vertical: 30),
-
         build: (pw.Context context) {
           return [
-            // --- EN-TÊTE ---
             pw.Container(
               padding: const pw.EdgeInsets.only(bottom: 20),
               margin: const pw.EdgeInsets.only(bottom: 20),
@@ -173,79 +160,42 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
               ),
             ),
 
-            // --- CONTENU (BLOCKS) ---
-
             if (plant.safetyPrecautions != null || plant.sideEffects != null)
-              _pdfUnbreakableCard(
-                "Précautions & Sécurité",
-                const pw.IconData(0xe002),
-                PdfColors.red700,
-                PdfColors.red50,
-                [
-                  if (plant.safetyPrecautions != null) _pdfContentBlock("Précautions", plant.safetyPrecautions!),
-                  if (plant.sideEffects != null) _pdfContentBlock("Effets secondaires", plant.sideEffects!),
-                ]
-              ),
+              _pdfUnbreakableCard("Précautions & Sécurité", const pw.IconData(0xe002), PdfColors.red700, PdfColors.red50, [
+                if (plant.safetyPrecautions != null) _pdfContentBlock("Précautions", plant.safetyPrecautions!),
+                if (plant.sideEffects != null) _pdfContentBlock("Effets secondaires", plant.sideEffects!),
+              ]),
 
             if (plant.usagePreparation != null || plant.usageDuration != null)
-              _pdfUnbreakableCard(
-                "Mode d'emploi",
-                const pw.IconData(0xef48),
-                PdfColors.teal700,
-                PdfColors.teal50,
-                [
-                  if (plant.usagePreparation != null) _pdfContentBlock("Préparation & Dosage", plant.usagePreparation!),
-                  if (plant.usageDuration != null) _pdfContentBlock("Durée", plant.usageDuration!),
-                ]
-              ),
+              _pdfUnbreakableCard("Mode d'emploi", const pw.IconData(0xef48), PdfColors.teal700, PdfColors.teal50, [
+                if (plant.usagePreparation != null) _pdfContentBlock("Préparation & Dosage", plant.usagePreparation!),
+                if (plant.usageDuration != null) _pdfContentBlock("Durée", plant.usageDuration!),
+              ]),
 
             if (plant.descriptionVisual != null || plant.confusionRisks != null)
-              _pdfUnbreakableCard(
-                "Identification",
-                const pw.IconData(0xe8f4),
-                PdfColors.blue700,
-                PdfColors.blue50,
-                [
-                  if (plant.plantType != null) _pdfContentBlock("Type", plant.plantType!),
-                  if (plant.descriptionVisual != null) _pdfContentBlock("Description visuelle", plant.descriptionVisual!),
-
-                  // --- ICONES STANDARDS (Safe) ---
-                  if (plant.procurementPicking != null)
-                    _pdfDetailRow(const pw.IconData(0xe406), "Cueillette :", plant.procurementPicking!), // Icons.nature
-
-                  if (plant.procurementBuying != null)
-                    _pdfDetailRow(const pw.IconData(0xe8cc), "Achat :", plant.procurementBuying!), // Icons.shopping_cart
-
-                  if (plant.procurementCulture != null)
-                    _pdfDetailRow(const pw.IconData(0xe3d3), "Culture :", plant.procurementCulture!), // Icons.filter_vintage (Fleur/Plante - très compatible)
-
-                  if (plant.confusionRisks != null)
-                    pw.Container(
-                      margin: const pw.EdgeInsets.only(top: 10),
-                      padding: const pw.EdgeInsets.all(8),
-                      decoration: pw.BoxDecoration(color: PdfColors.orange50, borderRadius: pw.BorderRadius.circular(4), border: pw.Border.all(color: PdfColors.orange200)),
-                      child: _pdfContentBlock("Ne pas confondre avec", plant.confusionRisks!, isWarning: true)
-                    ),
-                ]
-              ),
+              _pdfUnbreakableCard("Identification", const pw.IconData(0xe8f4), PdfColors.blue700, PdfColors.blue50, [
+                if (plant.plantType != null) _pdfContentBlock("Type", plant.plantType!),
+                if (plant.descriptionVisual != null) _pdfContentBlock("Description visuelle", plant.descriptionVisual!),
+                if (plant.procurementPicking != null) _pdfDetailRow(const pw.IconData(0xe406), "Cueillette :", plant.procurementPicking!),
+                if (plant.procurementBuying != null) _pdfDetailRow(const pw.IconData(0xe8cc), "Achat :", plant.procurementBuying!),
+                if (plant.procurementCulture != null) _pdfDetailRow(const pw.IconData(0xe3d3), "Culture :", plant.procurementCulture!),
+                if (plant.confusionRisks != null)
+                  pw.Container(
+                    margin: const pw.EdgeInsets.only(top: 10),
+                    padding: const pw.EdgeInsets.all(8),
+                    decoration: pw.BoxDecoration(color: PdfColors.orange50, borderRadius: pw.BorderRadius.circular(4), border: pw.Border.all(color: PdfColors.orange200)),
+                    child: _pdfContentBlock("Ne pas confondre avec", plant.confusionRisks!, isWarning: true),
+                  ),
+              ]),
 
             if (plant.scientificReferences != null && plant.scientificReferences!.isNotEmpty)
-              _pdfUnbreakableCard(
-                "Informations scientifiques",
-                const pw.IconData(0xea4d),
-                PdfColors.grey800,
-                PdfColors.grey100,
-                [
-                  _pdfContentBlock("", plant.scientificReferences!),
-                ]
-              ),
+              _pdfUnbreakableCard("Informations scientifiques", const pw.IconData(0xea4d), PdfColors.grey800, PdfColors.grey100, [
+                _pdfContentBlock("", plant.scientificReferences!),
+              ]),
 
             if (_references.isNotEmpty)
               _pdfUnbreakableCard(
-                "Sources & Références",
-                const pw.IconData(0xe865),
-                PdfColors.grey800,
-                PdfColors.white,
+                "Sources & Références", const pw.IconData(0xe865), PdfColors.grey800, PdfColors.white,
                 _references.map((ref) => pw.Padding(
                   padding: const pw.EdgeInsets.only(bottom: 2),
                   child: pw.Row(
@@ -253,9 +203,9 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                     children: [
                       pw.Text("• ", style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey)),
                       pw.Expanded(child: pw.Text(ref.fullReference, style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600))),
-                    ]
-                  )
-                )).toList()
+                    ],
+                  ),
+                )).toList(),
               ),
 
             pw.SizedBox(height: 20),
@@ -277,7 +227,6 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
     );
   }
 
-  // --- WIDGETS PDF HELPERS ---
   pw.Widget _pdfUnbreakableCard(String title, pw.IconData icon, PdfColor accentColor, PdfColor bgColor, List<pw.Widget> children) {
     return pw.Wrap(
       children: [
@@ -301,20 +250,17 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                     pw.Icon(icon, color: accentColor, size: 14),
                     pw.SizedBox(width: 8),
                     pw.Text(title, style: pw.TextStyle(color: accentColor, fontWeight: pw.FontWeight.bold, fontSize: 12)),
-                  ]
+                  ],
                 ),
               ),
               pw.Padding(
                 padding: const pw.EdgeInsets.all(12),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: children,
-                ),
+                child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: children),
               ),
-            ]
-          )
-        )
-      ]
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -327,8 +273,8 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
         children: [
           if (icon != null) ...[pw.Icon(icon, color: textColor, size: 9), pw.SizedBox(width: 3)],
           pw.Text(text, style: pw.TextStyle(color: textColor, fontSize: 8, fontWeight: pw.FontWeight.bold)),
-        ]
-      )
+        ],
+      ),
     );
   }
 
@@ -357,14 +303,11 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
           pw.Text(label, style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(width: 4),
           pw.Expanded(child: pw.Text(value, style: const pw.TextStyle(fontSize: 9))),
-        ]
-      )
+        ],
+      ),
     );
   }
 
-  // ==========================================
-  // BUILD FLUTTER UI (ECRAN)
-  // ==========================================
   @override
   Widget build(BuildContext context) {
     final plant = _displayPlant;
@@ -401,6 +344,11 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                         fit: BoxFit.cover,
                         color: Colors.black26,
                         colorBlendMode: BlendMode.darken,
+                        imageBuilder: (context, imageProvider) => Semantics(
+                          label: 'Photo de ${plant.name}',
+                          image: true,
+                          child: Image(image: imageProvider, fit: BoxFit.cover, color: Colors.black26, colorBlendMode: BlendMode.darken),
+                        ),
                         placeholder: (context, url) => Container(color: AppTheme.teal1),
                         errorWidget: (context, url, error) => Container(color: AppTheme.teal1, child: const Icon(Icons.error)),
                       )
@@ -463,7 +411,6 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                     ]),
                   const SizedBox(height: 32),
 
-                  // --- PRÉCAUTIONS (ouvert par défaut) ---
                   if ((plant.safetyPrecautions != null && plant.safetyPrecautions!.isNotEmpty) || (plant.sideEffects != null && plant.sideEffects!.isNotEmpty))
                     _PlantSection(
                       title: "Précautions & Sécurité",
@@ -497,7 +444,6 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                       ]),
                     ),
 
-                  // --- MODE D'EMPLOI (ouvert par défaut) ---
                   if ((plant.usagePreparation != null && plant.usagePreparation!.isNotEmpty) || (plant.usageDuration != null && plant.usageDuration!.isNotEmpty))
                     _PlantSection(
                       title: "Mode d'emploi",
@@ -520,7 +466,6 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                       ]),
                     ),
 
-                  // --- IDENTIFICATION (fermé par défaut) ---
                   if (plant.descriptionVisual != null || hasProcurement || (plant.confusionRisks != null && plant.confusionRisks!.isNotEmpty))
                     _PlantSection(
                       title: "Identification",
@@ -567,7 +512,6 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                       ]),
                     ),
 
-                  // --- INFORMATIONS SCIENTIFIQUES (fermé par défaut) ---
                   if (plant.scientificReferences != null && plant.scientificReferences!.isNotEmpty)
                     _PlantSection(
                       title: "Informations scientifiques",
@@ -583,7 +527,6 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                       ),
                     ),
 
-                  // --- SOURCES & RÉFÉRENCES (fermé par défaut) ---
                   if (!_loadingRefs && _references.isNotEmpty)
                     _PlantSection(
                       title: "Sources & Références",
@@ -621,8 +564,8 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20), border: Border.all(color: textCol.withOpacity(0.2))),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-            if (icon != null) ...[Icon(icon, size: 14, color: textCol), const SizedBox(width: 4)],
-            Flexible(child: Text(text, style: TextStyle(color: textCol, fontWeight: FontWeight.bold, fontSize: 12))),
+          if (icon != null) ...[Icon(icon, size: 14, color: textCol), const SizedBox(width: 4)],
+          Flexible(child: Text(text, style: TextStyle(color: textCol, fontWeight: FontWeight.bold, fontSize: 12))),
         ]),
       ),
     );
@@ -653,7 +596,6 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
   }
 }
 
-// Widget accordéon réutilisable pour les sections de la fiche plante
 class _PlantSection extends StatelessWidget {
   final String title;
   final IconData icon;

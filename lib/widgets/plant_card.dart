@@ -48,6 +48,11 @@ class PlantCard extends StatelessWidget {
                         imageUrl: imageUrl,
                         fit: BoxFit.cover,
                         memCacheHeight: 400,
+                        imageBuilder: (context, imageProvider) => Semantics(
+                          label: 'Photo de ${plant.name}',
+                          image: true,
+                          child: Image(image: imageProvider, fit: BoxFit.cover),
+                        ),
                         placeholder: (context, url) => const Center(child: Icon(Icons.image, color: Colors.black12)),
                         errorWidget: (context, url, error) => const Center(child: Icon(Icons.broken_image, color: Colors.black12)),
                       )
