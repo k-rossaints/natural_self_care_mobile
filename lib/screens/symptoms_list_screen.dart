@@ -50,7 +50,7 @@ class _SymptomsListScreenState extends ConsumerState<SymptomsListScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Chemins de décision', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Du symptôme au remède', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         foregroundColor: Theme.of(context).colorScheme.onSurface,

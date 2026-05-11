@@ -69,7 +69,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
-  /// Extrait un snippet de ~60 caractères autour de la première occurrence du mot
   String? _extractSnippet(String? text, String query) {
     if (text == null || text.isEmpty) return null;
     final normalized = removeDiacritics(text.toLowerCase());
@@ -83,7 +82,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return '${start > 0 ? '...' : ''}$snippet${end < text.length ? '...' : ''}';
   }
 
-  /// Cherche dans un champ texte ; retourne le snippet si trouvé
   String? _matchField(String? fieldValue, String query) {
     if (fieldValue == null || fieldValue.isEmpty) return null;
     final normalized = removeDiacritics(fieldValue.toLowerCase());
@@ -95,7 +93,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final List<_SearchResult> results = [];
     final Set<int> addedPlantIds = {};
 
-    // --- SYMPTÔMES (chemins de décision) ---
+    // --- SYMPTÔMES ---
     for (final s in symptoms) {
       final nameMatch = removeDiacritics(s.name.toLowerCase()).contains(q);
       final descMatch = removeDiacritics((s.description ?? '').toLowerCase()).contains(q);
@@ -109,7 +107,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     }
 
-    // --- PLANTES : recherche par tiers de priorité ---
     // Tier 1 : nom exact
     for (final p in plants) {
       final name = removeDiacritics(p.name.toLowerCase());
@@ -143,7 +140,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     }
 
-    // Tier 3 : contenu complet (descriptions, préparation, effets secondaires, etc.)
+    // Tier 3 : contenu complet
     final contentFields = <String, String? Function(Plant)>{
       'Description': (p) => p.descriptionShort,
       'Préparation': (p) => p.usagePreparation,
@@ -165,12 +162,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (snippet != null) {
           results.add(_SearchResult(item: p, tier: 3, matchField: entry.key, matchSnippet: snippet));
           addedPlantIds.add(p.id);
-          break; // un seul résultat par plante
+          break;
         }
       }
     }
 
-    // Tri : tier 1 d'abord, puis 2, puis 3. À tier égal, symptômes avant plantes.
     results.sort((a, b) {
       if (a.tier != b.tier) return a.tier.compareTo(b.tier);
       final aIsSymptom = a.item is Symptom ? 0 : 1;
@@ -183,12 +179,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _isSearching = true;
     });
   }
+
+  Widget _buildGuideItem(String number, String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          number,
+          style: TextStyle(fontSize: 15, color: Colors.white.withOpacity(0.9), fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(fontSize: 15, color: Colors.white.withOpacity(0.9), height: 1.4),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final plantsAsync = ref.watch(plantsProvider);
     final symptomsAsync = ref.watch(symptomsProvider);
 
-    // On récupère les données des providers (listes vides si pas encore chargé)
     final plants = plantsAsync.asData?.value ?? [];
     final symptoms = symptomsAsync.asData?.value ?? [];
 
@@ -202,7 +217,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // HEADER VERT COMPLET
+              // HEADER
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 60, 20, 40),
                 decoration: const BoxDecoration(
@@ -229,7 +244,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 15, color: Colors.white.withOpacity(0.9), height: 1.4),
                     ),
-
+                    const SizedBox(height: 12),
+                    // Guide utilisateur aligné
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        "Guide de l'utilisateur :",
+                        style: TextStyle(fontSize: 15, color: Colors.white.withOpacity(0.9), fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    _buildGuideItem(
+                      "1.",
+                      "Si votre problème est mentionné dans la rubrique du symptôme au remède, suivez-le par sécurité.",
+                    ),
+                    const SizedBox(height: 4),
+                    _buildGuideItem(
+                      "2.",
+                      "Sinon, la liste des problèmes indique des traitements appropriés.",
+                    ),
                     const SizedBox(height: 30),
 
                     // BARRE DE RECHERCHE
@@ -248,7 +281,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           hintStyle: TextStyle(color: Colors.grey.shade400),
                           prefixIcon: const Icon(Icons.search, color: AppTheme.teal1),
                           suffixIcon: _searchController.text.isNotEmpty
-                            ? IconButton(icon: const Icon(Icons.close, color: Colors.grey), onPressed: () { _searchController.clear(); _onSearchChanged('', plants, symptoms); FocusScope.of(context).unfocus(); })
+                            ? IconButton(
+                                icon: const Icon(Icons.close, color: Colors.grey),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _onSearchChanged('', plants, symptoms);
+                                  FocusScope.of(context).unfocus();
+                                },
+                              )
                             : null,
                           filled: false,
                           border: InputBorder.none,
@@ -274,7 +314,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: _searchResults.isEmpty
-                      ? Padding(padding: const EdgeInsets.all(20), child: Text("Aucun résultat trouvé.", style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)))
+                      ? Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Text("Aucun résultat trouvé.", style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                        )
                       : ListView.separated(
                           padding: EdgeInsets.zero,
                           shrinkWrap: true,
@@ -295,7 +338,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   children: [
                     _buildNavCard(
                       icon: Icons.local_florist_outlined,
-                      title: "Explorer les remèdes",
+                      title: "Remèdes naturels",
                       subtitle: "Rechercher par plante, usage et preuves.",
                       color: AppTheme.teal1,
                       onTap: () => widget.onTabChange(1),
@@ -303,7 +346,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const SizedBox(height: 16),
                     _buildNavCard(
                       icon: Icons.alt_route_outlined,
-                      title: "Chemins de décision",
+                      title: "Du symptôme au remède",
                       subtitle: "Trouver une solution selon vos symptômes.",
                       color: AppTheme.teal1,
                       onTap: () => widget.onTabChange(2),
@@ -311,7 +354,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const SizedBox(height: 16),
                     _buildNavCard(
                       icon: Icons.menu_book_outlined,
-                      title: "Index des problèmes",
+                      title: "Liste des problèmes",
                       subtitle: "Liste de A à Z des pathologies traitées.",
                       color: AppTheme.teal1,
                       onTap: () => widget.onTabChange(3),
@@ -322,7 +365,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
               const SizedBox(height: 40),
 
-              // PARTENAIRES (Mise à jour avec URLs)
+              // PARTENAIRES
               Center(child: Text("NOS PARTENAIRES", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey[400], letterSpacing: 1.5))),
               const SizedBox(height: 20),
               Padding(
@@ -355,7 +398,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final plant = sr.item as Plant;
       final heroTag = 'home-plant-${plant.id}';
 
-      // Sous-titre adaptatif : montre le champ correspondant pour le tier 2-3
       Widget subtitle;
       if (sr.tier == 1) {
         subtitle = Text("Plante", style: TextStyle(fontSize: 12, color: tealColor));
@@ -455,10 +497,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cs = Theme.of(context).colorScheme;
     final displayColor = isDark ? (color == AppTheme.teal1 ? AppTheme.tealDark : cs.onSurface) : color;
-    return Card(elevation: isDark ? 0 : 4, shadowColor: color.withOpacity(0.2), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: isDark ? BorderSide(color: cs.outlineVariant) : BorderSide.none), child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(16), child: Padding(padding: const EdgeInsets.all(20), child: Row(children: [Container(width: 50, height: 50, decoration: BoxDecoration(color: displayColor.withOpacity(0.12), shape: BoxShape.circle), child: Icon(icon, color: displayColor, size: 28)), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: displayColor)), const SizedBox(height: 4), Text(subtitle, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant))])), Icon(Icons.chevron_right, color: cs.onSurfaceVariant)]))));
+    return Card(
+      elevation: isDark ? 0 : 4,
+      shadowColor: color.withOpacity(0.2),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: isDark ? BorderSide(color: cs.outlineVariant) : BorderSide.none),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(width: 50, height: 50, decoration: BoxDecoration(color: displayColor.withOpacity(0.12), shape: BoxShape.circle), child: Icon(icon, color: displayColor, size: 28)),
+              const SizedBox(width: 16),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: displayColor)),
+                const SizedBox(height: 4),
+                Text(subtitle, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+              ])),
+              Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
-  // MODIFICATION ICI : On accepte l'URL et on utilise InkWell pour le clic
   Widget _buildPartnerLogo(String assetPath, String url) {
     return InkWell(
       onTap: () => _launchPartnerUrl(url),
@@ -470,9 +534,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(10)
-        ), 
-        child: Image.asset(assetPath, fit: BoxFit.contain)
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Image.asset(assetPath, fit: BoxFit.contain),
       ),
     );
   }

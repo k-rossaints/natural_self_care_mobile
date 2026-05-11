@@ -102,7 +102,7 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Demarche scientifique')),
+      appBar: AppBar(title: const Text('Démarche scientifique')),
       body: _hasError && _allReferences.isEmpty && _pendingReferences.isEmpty && _genericReferences.isEmpty
           ? ErrorView(isOffline: true, onRetry: _loadData)
           : CustomScrollView(
@@ -115,16 +115,16 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Decouvrez notre demarche.',
+                    'Decouvrez notre démarche.',
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: isDark ? AppTheme.tealDark : AppTheme.teal1),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    "Les plantes presentees ont fait l'objet de recherches cliniques completes.\nElles sont validees comme des medicaments conventionnels.",
+                    "Les plantes présentées dans les fiches ont fait l'objet de recherches cliniques complètes et rigoureuses.",
                     style: TextStyle(fontSize: 16, height: 1.5, color: cs.onSurface),
                   ),
                   const SizedBox(height: 30),
-                  Text('Bibliographies particulieres',
+                  Text('Bibliographies particulières',
                       style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? AppTheme.tealDark : AppTheme.teal2)),
                   const SizedBox(height: 16),
                   Container(
@@ -156,7 +156,7 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     decoration: InputDecoration(
-                      hintText: 'Rechercher un mot-cle...',
+                      hintText: 'Rechercher un mot-clé...',
                       hintStyle: TextStyle(color: cs.onSurfaceVariant),
                       prefixIcon: const Icon(Icons.search),
                       filled: true,

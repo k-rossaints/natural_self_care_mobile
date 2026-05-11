@@ -21,7 +21,7 @@ class ExpandableText extends StatefulWidget {
 
 class _ExpandableTextState extends State<ExpandableText> {
   bool _expanded = false;
-  bool _overflows = false;
+  final bool _overflows = false;
 
   @override
   Widget build(BuildContext context) {

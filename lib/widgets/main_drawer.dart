@@ -69,7 +69,7 @@ class MainDrawer extends ConsumerWidget {
                 ),
                 ListTile(
                   leading: Icon(Icons.local_florist, color: tealColor),
-                  title: const Text('Explorer les remèdes', style: TextStyle(fontWeight: FontWeight.bold)),
+                  title: const Text('Remèdes naturels', style: TextStyle(fontWeight: FontWeight.bold)),
                   onTap: () {
                     Navigator.pop(context);
                     onTabChange(1);
@@ -77,7 +77,7 @@ class MainDrawer extends ConsumerWidget {
                 ),
                 ListTile(
                   leading: Icon(Icons.alt_route, color: tealColor),
-                  title: const Text('Chemins de décision', style: TextStyle(fontWeight: FontWeight.bold)),
+                  title: const Text('Du symptôme au remède', style: TextStyle(fontWeight: FontWeight.bold)),
                   onTap: () {
                     Navigator.pop(context);
                     onTabChange(2);
@@ -85,7 +85,7 @@ class MainDrawer extends ConsumerWidget {
                 ),
                 ListTile(
                   leading: Icon(Icons.menu_book, color: tealColor),
-                  title: const Text('Index des problèmes', style: TextStyle(fontWeight: FontWeight.bold)),
+                  title: const Text('Liste des problèmes', style: TextStyle(fontWeight: FontWeight.bold)),
                   onTap: () {
                     Navigator.pop(context);
                     onTabChange(3);
@@ -109,7 +109,7 @@ class MainDrawer extends ConsumerWidget {
                   trailing: Switch(
                     value: isDarkMode,
                     onChanged: (_) => ref.read(themeModeProvider.notifier).toggle(),
-                    activeColor: AppTheme.teal1,
+                    activeThumbColor: AppTheme.teal1,
                   ),
                 ),
 
@@ -144,14 +144,14 @@ class MainDrawer extends ConsumerWidget {
                   leading: const Icon(Icons.privacy_tip_outlined, color: Colors.grey),
                   title: const Text('Politique de confidentialité', style: TextStyle(fontSize: 14)),
                   dense: true,
-                  onTap: () => _launchURL('http://46.224.187.154.nip.io/confidentialite'),
+                  onTap: () => _launchURL('https://www.natural-self-care.ch/confidentialite'),
                 ),
 
                 ListTile(
                   leading: const Icon(Icons.gavel_outlined, color: Colors.grey),
                   title: const Text('Mentions légales', style: TextStyle(fontSize: 14)),
                   dense: true,
-                  onTap: () => _launchURL('http://46.224.187.154.nip.io/mentions-legales'),
+                  onTap: () => _launchURL('https://www.natural-self-care.ch/mentions-legales'),
                 ),
               ],
             ),

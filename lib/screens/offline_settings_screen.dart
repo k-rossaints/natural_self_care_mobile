@@ -114,7 +114,7 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
             title: const Text("Sauvegarder les images"),
             subtitle: const Text("Consomme plus d'espace de stockage"),
             value: _saveImages,
-            activeColor: AppTheme.teal1,
+            activeThumbColor: AppTheme.teal1,
             onChanged: (val) {
               setState(() => _saveImages = val);
               _offlineService.setSaveImages(val);

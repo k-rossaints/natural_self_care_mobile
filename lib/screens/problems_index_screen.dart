@@ -64,7 +64,7 @@ class _ProblemsIndexScreenState extends ConsumerState<ProblemsIndexScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Index des problèmes', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Liste des problèmes', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
         foregroundColor: Theme.of(context).colorScheme.onSurface,

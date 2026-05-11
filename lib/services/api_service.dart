@@ -21,7 +21,7 @@ List<GenericReference> _parseGenericReferences(dynamic data) => (data as List).m
 List<PendingReference> _parsePendingReferences(dynamic data) => (data as List).map((json) => PendingReference.fromJson(json)).toList();
 
 class ApiService {
-  static const String baseUrl = 'http://directus-rk4w4cskcos4kwwoc84s88ss.46.224.187.154.sslip.io';
+  static const String baseUrl = 'https://directus-rk4w4cskcos4kwwoc84s88ss.46.224.187.154.sslip.io';
 
   final Dio _dio = Dio(BaseOptions(
     baseUrl: baseUrl,
