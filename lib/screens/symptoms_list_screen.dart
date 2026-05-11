@@ -31,13 +31,21 @@ class _SymptomsListScreenState extends ConsumerState<SymptomsListScreen> {
   void _runFilter(List<Symptom> allSymptoms, String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 300), () {
-      final q = removeDiacritics(query.toLowerCase());
+      final q = removeDiacritics(query.toLowerCase().trim());
       if (mounted) {
         setState(() {
           _searchQuery = query;
-          _filteredSymptoms = allSymptoms.where((s) {
-            return removeDiacritics(s.name.toLowerCase()).contains(q);
-          }).toList();
+          if (q.isEmpty) {
+            _filteredSymptoms = allSymptoms;
+          } else {
+            _filteredSymptoms = allSymptoms.where((s) {
+              // Cherche dans le nom, la description ET le "Bon à savoir"
+              // → permet de trouver "Mal de gorge" en tapant "angine"
+              return removeDiacritics(s.name.toLowerCase()).contains(q) ||
+                     removeDiacritics((s.description ?? '').toLowerCase()).contains(q) ||
+                     removeDiacritics((s.additionalInfo ?? '').toLowerCase()).contains(q);
+            }).toList();
+          }
         });
       }
     });
@@ -74,27 +82,58 @@ class _SymptomsListScreenState extends ConsumerState<SymptomsListScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkCard : Colors.white,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppTheme.darkCard
+                        : Colors.white,
                     borderRadius: BorderRadius.circular(30),
-                    border: Theme.of(context).brightness == Brightness.dark ? Border.all(color: const Color(0xFF3A3A3A)) : null,
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.08), blurRadius: Theme.of(context).brightness == Brightness.dark ? 4 : 10, offset: const Offset(0, 2))],
+                    border: Theme.of(context).brightness == Brightness.dark
+                        ? Border.all(color: const Color(0xFF3A3A3A))
+                        : null,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(
+                            Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.08),
+                        blurRadius:
+                            Theme.of(context).brightness == Brightness.dark ? 4 : 10,
+                        offset: const Offset(0, 2),
+                      )
+                    ],
                   ),
                   child: TextField(
                     onChanged: (val) => _runFilter(symptoms, val),
                     decoration: InputDecoration(
-                      hintText: "Rechercher un symptôme...",
-                      hintStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkTextSecondary : Colors.grey.shade400),
-                      prefixIcon: Icon(Icons.search, color: Theme.of(context).brightness == Brightness.dark ? AppTheme.tealDark : AppTheme.teal1),
+                      hintText: "Symptôme, maladie, mot-clé...",
+                      hintStyle: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppTheme.darkTextSecondary
+                              : Colors.grey.shade400),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.tealDark
+                            : AppTheme.teal1,
+                      ),
                       filled: false,
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                     ),
                   ),
                 ),
               ),
               Expanded(
                 child: _filteredSymptoms.isEmpty
-                    ? Center(child: Text("Aucun résultat", style: TextStyle(color: Colors.grey.shade500)))
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.search_off, size: 50, color: Colors.grey.shade300),
+                            const SizedBox(height: 10),
+                            Text("Aucun résultat pour \"$_searchQuery\"",
+                                style: TextStyle(color: Colors.grey.shade500)),
+                          ],
+                        ),
+                      )
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
                         itemCount: _filteredSymptoms.length,
@@ -103,11 +142,21 @@ class _SymptomsListScreenState extends ConsumerState<SymptomsListScreen> {
                           return Card(
                             margin: const EdgeInsets.only(bottom: 16),
                             elevation: 0,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .outlineVariant)),
                             child: InkWell(
                               onTap: () {
                                 FocusScope.of(context).unfocus();
-                                Navigator.push(context, MaterialPageRoute(fullscreenDialog: true, builder: (context) => DecisionSessionScreen(symptom: symptom)));
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        fullscreenDialog: true,
+                                        builder: (context) =>
+                                            DecisionSessionScreen(symptom: symptom)));
                               },
                               borderRadius: BorderRadius.circular(12),
                               child: Padding(
@@ -116,18 +165,47 @@ class _SymptomsListScreenState extends ConsumerState<SymptomsListScreen> {
                                   children: [
                                     Container(
                                       padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.withOpacity(0.15) : Colors.blue.shade50, shape: BoxShape.circle),
-                                      child: Icon(Icons.alt_route, color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade300 : Colors.blue.shade700, size: 20),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.blue.withOpacity(0.15)
+                                            : Colors.blue.shade50,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.alt_route,
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.blue.shade300
+                                            : Colors.blue.shade700,
+                                        size: 20,
+                                      ),
                                     ),
                                     const SizedBox(width: 16),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text(symptom.name, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
+                                          Text(
+                                            symptom.name,
+                                            style: TextStyle(
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.bold,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface),
+                                          ),
                                           if (symptom.description != null) ...[
                                             const SizedBox(height: 4),
-                                            Text(symptom.description!, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13, height: 1.4)),
+                                            Text(
+                                              symptom.description!,
+                                              style: TextStyle(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                                  fontSize: 13,
+                                                  height: 1.4),
+                                            ),
                                           ],
                                         ],
                                       ),

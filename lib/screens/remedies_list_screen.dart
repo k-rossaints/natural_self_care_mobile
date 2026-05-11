@@ -90,10 +90,24 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
       if (_selectedHabitat != null && plant.habitat?.trim() != _selectedHabitat) return false;
       if (_selectedAilment != null && !plant.ailments.contains(_selectedAilment)) return false;
       if (_searchQuery.isEmpty) return true;
+      // Recherche dans tous les champs texte (même logique que le site web)
+      // → "grippe" trouve Eucalyptus, "brûlure" trouve le Miel, etc.
       return _fuzzyMatch(plant.name, _searchQuery) ||
           _fuzzyMatch(plant.scientificName ?? '', _searchQuery) ||
+          _fuzzyMatch(plant.commonNames ?? '', _searchQuery) ||
           (plant.habitat != null && _fuzzyMatch(plant.habitat!, _searchQuery)) ||
-          plant.ailments.any((a) => _fuzzyMatch(a, _searchQuery));
+          plant.ailments.any((a) => _fuzzyMatch(a, _searchQuery)) ||
+          _fuzzyMatch(plant.descriptionShort ?? '', _searchQuery) ||
+          _fuzzyMatch(plant.usagePreparation ?? '', _searchQuery) ||
+          _fuzzyMatch(plant.usageDuration ?? '', _searchQuery) ||
+          _fuzzyMatch(plant.safetyPrecautions ?? '', _searchQuery) ||
+          _fuzzyMatch(plant.sideEffects ?? '', _searchQuery) ||
+          _fuzzyMatch(plant.descriptionVisual ?? '', _searchQuery) ||
+          _fuzzyMatch(plant.procurementPicking ?? '', _searchQuery) ||
+          _fuzzyMatch(plant.procurementBuying ?? '', _searchQuery) ||
+          _fuzzyMatch(plant.procurementCulture ?? '', _searchQuery) ||
+          _fuzzyMatch(plant.confusionRisks ?? '', _searchQuery) ||
+          _fuzzyMatch(plant.scientificReferences ?? '', _searchQuery);
     }).toList();
 
     _currentPage = 1;
