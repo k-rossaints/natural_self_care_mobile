@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../theme.dart';
+import '../providers/plants_provider.dart';
+import '../providers/symptoms_provider.dart';
+import '../widgets/global_search_delegate.dart';
 import 'home_screen.dart';
 import 'remedies_list_screen.dart';
 import 'symptoms_list_screen.dart';
@@ -23,6 +26,15 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     setState(() {
       _currentIndex = index;
     });
+  }
+
+  void _openGlobalSearch(BuildContext context) {
+    final plants = ref.read(plantsProvider).asData?.value ?? [];
+    final symptoms = ref.read(symptomsProvider).asData?.value ?? [];
+    showSearch(
+      context: context,
+      delegate: GlobalSearchDelegate(plants: plants, symptoms: symptoms),
+    );
   }
 
   @override
@@ -53,17 +65,21 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
           ],
         ),
         centerTitle: true,
+        actions: [
+          if (_currentIndex != 0)
+            IconButton(
+              icon: const Icon(Icons.search),
+              tooltip: 'Rechercher',
+              onPressed: () => _openGlobalSearch(context),
+            ),
+        ],
       ),
-      
+
       drawer: MainDrawer(onTabChange: _goToTab),
 
-      // --- 2. MODIFICATION DE LA STRUCTURE DU BODY ---
       body: Column(
         children: [
-          // La banderole est insérée ici. Elle ne s'affichera que si le Wifi est coupé.
           const OfflineBanner(),
-          
-          // Le contenu principal prend tout le reste de la place
           Expanded(
             child: IndexedStack(
               index: _currentIndex,
@@ -72,8 +88,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
           ),
         ],
       ),
-      // -----------------------------------------------
-      
+
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: _goToTab,

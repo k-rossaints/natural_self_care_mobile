@@ -34,6 +34,7 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
   bool _hasMore = false;
 
   Timer? _debounce;
+  final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
   final ScrollController _scrollController = ScrollController();
   bool _initialized = false;
@@ -47,6 +48,7 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _searchController.dispose();
     _searchFocus.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -90,8 +92,6 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
       if (_selectedHabitat != null && plant.habitat?.trim() != _selectedHabitat) return false;
       if (_selectedAilment != null && !plant.ailments.contains(_selectedAilment)) return false;
       if (_searchQuery.isEmpty) return true;
-      // Recherche dans tous les champs texte (même logique que le site web)
-      // → "grippe" trouve Eucalyptus, "brûlure" trouve le Miel, etc.
       return _fuzzyMatch(plant.name, _searchQuery) ||
           _fuzzyMatch(plant.scientificName ?? '', _searchQuery) ||
           _fuzzyMatch(plant.commonNames ?? '', _searchQuery) ||
@@ -121,33 +121,7 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
     if (query.isEmpty) return true;
     final s = removeDiacritics(source.toLowerCase());
     final q = removeDiacritics(query.toLowerCase());
-    if (s.contains(q)) return true;
-    for (var word in s.split(' ')) {
-      if (_levenshtein(word, q) <= 2) return true;
-    }
-    return false;
-  }
-
-  int _levenshtein(String s, String t) {
-    if (s == t) return 0;
-    if (s.isEmpty) return t.length;
-    if (t.isEmpty) return s.length;
-    List<int> v0 = List<int>.filled(t.length + 1, 0);
-    List<int> v1 = List<int>.filled(t.length + 1, 0);
-    for (int i = 0; i < t.length + 1; i++) {
-      v0[i] = i;
-    }
-    for (int i = 0; i < s.length; i++) {
-      v1[0] = i + 1;
-      for (int j = 0; j < t.length; j++) {
-        int cost = (s[i] == t[j]) ? 0 : 1;
-        v1[j + 1] = min(v1[j] + 1, min(v0[j + 1] + 1, v0[j] + cost));
-      }
-      for (int j = 0; j < t.length + 1; j++) {
-        v0[j] = v1[j];
-      }
-    }
-    return v1[t.length];
+    return s.contains(q);
   }
 
   @override
@@ -184,7 +158,14 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
                 flexibleSpace: FlexibleSpaceBar(
                   titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
                   centerTitle: false,
-                  title: Text("Remèdes naturels", style: TextStyle(color: isDark ? AppTheme.darkTextPrimary : AppTheme.textDark, fontWeight: FontWeight.w800, fontSize: 24)),
+                  title: Text(
+                    "Remèdes naturels",
+                    style: TextStyle(
+                      color: isDark ? AppTheme.darkTextPrimary : AppTheme.textDark,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 24,
+                    ),
+                  ),
                 ),
               ),
 
@@ -204,11 +185,20 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
                             color: isDark ? AppTheme.darkCard : Colors.white,
                             borderRadius: BorderRadius.circular(30),
                             border: isDark ? Border.all(color: const Color(0xFF3A3A3A)) : null,
-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.08), blurRadius: isDark ? 4 : 10, offset: const Offset(0, 2))],
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
+                                blurRadius: isDark ? 4 : 10,
+                                offset: const Offset(0, 2),
+                              )
+                            ],
                           ),
                           child: TextField(
+                            controller: _searchController,
                             focusNode: _searchFocus,
-                            style: TextStyle(color: isDark ? AppTheme.darkTextPrimary : AppTheme.textDark),
+                            style: TextStyle(
+                              color: isDark ? AppTheme.darkTextPrimary : AppTheme.textDark,
+                            ),
                             onChanged: (val) {
                               _searchQuery = val;
                               if (_debounce?.isActive ?? false) _debounce!.cancel();
@@ -218,24 +208,76 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
                             },
                             decoration: InputDecoration(
                               hintText: "Plante, symptôme, habitat...",
-                              hintStyle: TextStyle(color: isDark ? AppTheme.darkTextSecondary : Colors.grey.shade400, fontSize: 14),
-                              prefixIcon: Icon(Icons.search, color: isDark ? AppTheme.tealDark : AppTheme.teal1),
+                              hintStyle: TextStyle(
+                                color: isDark ? AppTheme.darkTextSecondary : Colors.grey.shade400,
+                                fontSize: 14,
+                              ),
+                              prefixIcon: Icon(
+                                Icons.search,
+                                color: isDark ? AppTheme.tealDark : AppTheme.teal1,
+                              ),
+                              suffixIcon: _searchController.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.close, color: Colors.grey),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        _searchQuery = '';
+                                        _searchFocus.unfocus();
+                                        setState(() => _applyFilters(plants));
+                                      },
+                                    )
+                                  : null,
                               filled: false,
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 14,
+                              ),
                             ),
                           ),
                         ),
                         const SizedBox(height: 10),
                         Row(children: [
-                          Expanded(child: _buildDropdown(context, hint: "Symptôme", value: _selectedAilment, items: _availableAilments, icon: Icons.medical_services_outlined, onChanged: (val) { setState(() { _selectedAilment = val; _applyFilters(plants); }); })),
+                          Expanded(
+                            child: _buildDropdown(
+                              context,
+                              hint: "Symptôme",
+                              value: _selectedAilment,
+                              items: _availableAilments,
+                              icon: Icons.medical_services_outlined,
+                              onChanged: (val) {
+                                setState(() {
+                                  _selectedAilment = val;
+                                  _applyFilters(plants);
+                                });
+                              },
+                            ),
+                          ),
                           const SizedBox(width: 10),
-                          Expanded(child: _buildDropdown(context, hint: "Zone géo", value: _selectedHabitat, items: _availableHabitats, icon: Icons.public, onChanged: (val) { setState(() { _selectedHabitat = val; _applyFilters(plants); }); })),
+                          Expanded(
+                            child: _buildDropdown(
+                              context,
+                              hint: "Zone géo",
+                              value: _selectedHabitat,
+                              items: _availableHabitats,
+                              icon: Icons.public,
+                              onChanged: (val) {
+                                setState(() {
+                                  _selectedHabitat = val;
+                                  _applyFilters(plants);
+                                });
+                              },
+                            ),
+                          ),
                         ]),
                         const SizedBox(height: 8),
                         Text(
                           "${_allFilteredPlants.length} plante${_allFilteredPlants.length > 1 ? 's' : ''} trouvée${_allFilteredPlants.length > 1 ? 's' : ''}",
-                          style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
@@ -253,7 +295,12 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
                         child: Column(children: [
                           Icon(Icons.search_off, size: 50, color: Colors.grey.shade300),
                           const SizedBox(height: 10),
-                          Text("Aucun résultat", style: TextStyle(color: Colors.grey.shade500)),
+                          Text(
+                            _searchQuery.isNotEmpty
+                                ? "Aucun résultat pour \"$_searchQuery\""
+                                : "Aucun résultat",
+                            style: TextStyle(color: Colors.grey.shade500),
+                          ),
                         ]),
                       ),
                     )
@@ -261,19 +308,34 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
                           if (index == _displayedPlants.length) {
-                            // Indicateur de chargement pagination
                             return _hasMore
-                                ? const Padding(padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator(color: AppTheme.teal1)))
+                                ? const Padding(
+                                    padding: EdgeInsets.all(20),
+                                    child: Center(
+                                      child: CircularProgressIndicator(color: AppTheme.teal1),
+                                    ),
+                                  )
                                 : Padding(
                                     padding: const EdgeInsets.all(16),
-                                    child: Center(child: Text("${_allFilteredPlants.length} plantes affichées", style: const TextStyle(color: Colors.grey, fontSize: 13))),
+                                    child: Center(
+                                      child: Text(
+                                        "${_allFilteredPlants.length} plantes affichées",
+                                        style: const TextStyle(color: Colors.grey, fontSize: 13),
+                                      ),
+                                    ),
                                   );
                           }
                           return PlantCard(
                             plant: _displayedPlants[index],
-                            onTap: () => Navigator.push(context, MaterialPageRoute(
-                              builder: (context) => PlantDetailScreen(plant: _displayedPlants[index], heroTag: 'remedies-plant-${_displayedPlants[index].id}'),
-                            )),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PlantDetailScreen(
+                                  plant: _displayedPlants[index],
+                                  heroTag: 'remedies-plant-${_displayedPlants[index].id}',
+                                ),
+                              ),
+                            ),
                           );
                         },
                         childCount: _displayedPlants.length + 1,
@@ -288,7 +350,14 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
     );
   }
 
-  Widget _buildDropdown(BuildContext context, {required String hint, required String? value, required List<String> items, required IconData icon, required Function(String?) onChanged}) {
+  Widget _buildDropdown(
+    BuildContext context, {
+    required String hint,
+    required String? value,
+    required List<String> items,
+    required IconData icon,
+    required Function(String?) onChanged,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tealColor = isDark ? AppTheme.tealDark : AppTheme.teal1;
     final isEmpty = items.isEmpty;
@@ -296,20 +365,60 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
       height: 45,
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: value != null ? tealColor.withOpacity(isDark ? 0.15 : 0.1) : (isDark ? AppTheme.darkCard : (isEmpty ? Colors.grey.shade100 : Colors.white)),
+        color: value != null
+            ? tealColor.withOpacity(isDark ? 0.15 : 0.1)
+            : (isDark ? AppTheme.darkCard : (isEmpty ? Colors.grey.shade100 : Colors.white)),
         borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: value != null ? tealColor : (isDark ? const Color(0xFF3A3A3A) : Colors.grey.shade300)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.15 : 0.04), blurRadius: 4, offset: const Offset(0, 1))],
+        border: Border.all(
+          color: value != null
+              ? tealColor
+              : (isDark ? const Color(0xFF3A3A3A) : Colors.grey.shade300),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.15 : 0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          )
+        ],
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
           dropdownColor: isDark ? AppTheme.darkCard : Colors.white,
-          hint: Row(children: [Icon(icon, size: 16, color: Colors.grey), const SizedBox(width: 8), Text(isEmpty ? "(Vide)" : hint, style: const TextStyle(fontSize: 13, color: Colors.grey))]),
-          icon: value != null ? GestureDetector(onTap: () => onChanged(null), child: Icon(Icons.close, size: 18, color: tealColor)) : Icon(Icons.arrow_drop_down, color: isEmpty ? Colors.grey.shade300 : Colors.grey),
+          hint: Row(children: [
+            Icon(icon, size: 16, color: Colors.grey),
+            const SizedBox(width: 8),
+            Text(
+              isEmpty ? "(Vide)" : hint,
+              style: const TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+          ]),
+          icon: value != null
+              ? GestureDetector(
+                  onTap: () => onChanged(null),
+                  child: Icon(Icons.close, size: 18, color: tealColor),
+                )
+              : Icon(
+                  Icons.arrow_drop_down,
+                  color: isEmpty ? Colors.grey.shade300 : Colors.grey,
+                ),
           isExpanded: true,
-          style: TextStyle(color: value != null ? tealColor : (isDark ? AppTheme.darkTextPrimary : Colors.black87), fontWeight: FontWeight.w600, fontSize: 13),
-          items: isEmpty ? null : items.map((item) => DropdownMenuItem<String>(value: item, child: Text(item, maxLines: 1, overflow: TextOverflow.ellipsis))).toList(),
+          style: TextStyle(
+            color: value != null
+                ? tealColor
+                : (isDark ? AppTheme.darkTextPrimary : Colors.black87),
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
+          items: isEmpty
+              ? null
+              : items
+                  .map((item) => DropdownMenuItem<String>(
+                        value: item,
+                        child: Text(item, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      ))
+                  .toList(),
           onChanged: isEmpty ? null : onChanged,
         ),
       ),
@@ -321,10 +430,24 @@ class _StickyFilterHeaderDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
   final double maxHeight;
   final double minHeight;
-  _StickyFilterHeaderDelegate({required this.child, required this.maxHeight, required this.minHeight});
+
+  _StickyFilterHeaderDelegate({
+    required this.child,
+    required this.maxHeight,
+    required this.minHeight,
+  });
+
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) => SizedBox.expand(child: child);
-  @override double get maxExtent => maxHeight;
-  @override double get minExtent => minHeight;
-  @override bool shouldRebuild(_StickyFilterHeaderDelegate old) => maxHeight != old.maxExtent || minHeight != old.minExtent || child != old.child;
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) =>
+      SizedBox.expand(child: child);
+
+  @override
+  double get maxExtent => maxHeight;
+
+  @override
+  double get minExtent => minHeight;
+
+  @override
+  bool shouldRebuild(_StickyFilterHeaderDelegate old) =>
+      maxHeight != old.maxExtent || minHeight != old.minExtent || child != old.child;
 }
