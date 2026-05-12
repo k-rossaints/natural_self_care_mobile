@@ -135,12 +135,6 @@ class MainDrawer extends ConsumerWidget {
                 const Divider(),
 
                 ListTile(
-                  leading: const Icon(Icons.facebook, color: Color(0xFF1877F2)),
-                  title: const Text('Suivez-nous sur Facebook', style: TextStyle(fontWeight: FontWeight.w600)),
-                  onTap: () => _launchURL('https://facebook.com/naturalselfcareweb'),
-                ),
-
-                ListTile(
                   leading: const Icon(Icons.privacy_tip_outlined, color: Colors.grey),
                   title: const Text('Politique de confidentialité', style: TextStyle(fontSize: 14)),
                   dense: true,

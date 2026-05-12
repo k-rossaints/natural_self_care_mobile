@@ -25,7 +25,7 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
   List<Plant> _plants = [];
 
   String _searchQuery = '';
-  String _selectedPlantFilter = 'Tous les themes';
+  String _selectedPlantFilter = 'Tous les thèmes';
 
   bool _loadingFilters = true;
   bool _loadingRefs = true;
@@ -80,7 +80,7 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
   Map<String, List<Reference>> get _filteredGroupedReferences {
     final search = _searchQuery.toLowerCase();
     final filtered = _allReferences.where((ref) {
-      final matchesPlant = _selectedPlantFilter == 'Tous les themes' ||
+      final matchesPlant = _selectedPlantFilter == 'Tous les thèmes' ||
           ref.plantName == _selectedPlantFilter;
       if (!matchesPlant) return false;
       if (search.isEmpty) return true;
@@ -115,7 +115,7 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Decouvrez notre démarche.',
+                    'Découvrez notre démarche',
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: isDark ? AppTheme.tealDark : AppTheme.teal1),
                   ),
                   const SizedBox(height: 16),
@@ -146,7 +146,7 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
                               icon: Icon(Icons.filter_list, color: isDark ? AppTheme.tealDark : AppTheme.teal1),
                               style: TextStyle(color: cs.onSurface, fontSize: 14),
                               items: [
-                                DropdownMenuItem(value: 'Tous les themes', child: Text('Tous les themes', style: TextStyle(color: cs.onSurface))),
+                                DropdownMenuItem(value: 'Tous les thèmes', child: Text('Tous les thèmes', style: TextStyle(color: cs.onSurface))),
                                 ..._plants.map((p) => DropdownMenuItem(value: p.name, child: Text(p.name, style: TextStyle(color: cs.onSurface)))),
                               ],
                               onChanged: (val) => setState(() => _selectedPlantFilter = val!),

@@ -98,7 +98,7 @@ class _ProblemsIndexScreenState extends ConsumerState<ProblemsIndexScreen> {
                   child: TextField(
                     onChanged: _runFilter,
                     decoration: InputDecoration(
-                      hintText: "Rechercher (ex: Acné, Stress...)",
+                      hintText: "Rechercher (ex: acné, stress...)",
                       hintStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? AppTheme.darkTextSecondary : Colors.grey.shade400),
                       prefixIcon: Icon(Icons.search, color: Theme.of(context).brightness == Brightness.dark ? AppTheme.tealDark : AppTheme.teal1),
                       filled: false,
