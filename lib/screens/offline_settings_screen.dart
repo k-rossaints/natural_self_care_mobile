@@ -28,6 +28,7 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
     _loadSettings();
   }
 
+  // Charge l'option de sauvegarde des images et les dates de dernière synchronisation.
   Future<void> _loadSettings() async {
     final saveImg = await _offlineService.shouldSaveImages();
     final dates = await _offlineService.getSyncDates();
@@ -41,6 +42,11 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
     }
   }
 
+  /*
+    Lance le téléchargement des catégories sélectionnées de manière séquentielle.
+    Le message de statut est mis à jour entre chaque étape pour informer l'utilisateur.
+    Les dates de synchronisation sont rafraîchies après un téléchargement réussi.
+  */
   Future<void> _startDownload({
     bool downloadPlants = false,
     bool downloadPaths = false,
@@ -108,7 +114,6 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
           ),
           const SizedBox(height: 30),
 
-          // --- OPTIONS ---
           Text("OPTIONS", style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).brightness == Brightness.dark ? AppTheme.tealDark : AppTheme.teal1)),
           SwitchListTile(
             title: const Text("Sauvegarder les images"),
@@ -123,10 +128,10 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
 
           const Divider(height: 40),
 
-          // --- CONTENU ---
           Text("CONTENU À TÉLÉCHARGER", style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).brightness == Brightness.dark ? AppTheme.tealDark : AppTheme.teal1)),
           const SizedBox(height: 10),
 
+          // Chaque bouton correspond à une catégorie de données téléchargeable indépendamment.
           _buildDownloadButton(
             title: "Base de données Plantes",
             icon: Icons.local_florist,
@@ -152,6 +157,7 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
 
           const SizedBox(height: 20),
 
+          // Barre de progression et message de statut affichés uniquement pendant un téléchargement.
           if (_isDownloading) ...[
             LinearProgressIndicator(color: Theme.of(context).brightness == Brightness.dark ? AppTheme.tealDark : AppTheme.teal1),
             const SizedBox(height: 10),
@@ -165,7 +171,6 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
 
           const SizedBox(height: 40),
 
-          // --- TOUT TÉLÉCHARGER ---
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -177,6 +182,7 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
+              // Désactivé pendant un téléchargement en cours pour éviter les appels simultanés.
               onPressed: _isDownloading
                   ? null
                   : () => _startDownload(
@@ -189,7 +195,6 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
 
           const SizedBox(height: 16),
 
-          // --- NETTOYAGE ---
           OutlinedButton.icon(
             icon: const Icon(Icons.delete_outline, color: AppTheme.danger),
             label: const Text("Supprimer les données locales", style: TextStyle(color: AppTheme.danger)),
@@ -213,6 +218,11 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
     );
   }
 
+  /*
+    Carte représentant une catégorie de données téléchargeable.
+    L'icône et la couleur du sous-titre indiquent si la donnée a déjà été
+    synchronisée, avec la date de dernière synchronisation si disponible.
+  */
   Widget _buildDownloadButton({
     required String title,
     required IconData icon,
@@ -250,6 +260,7 @@ class _OfflineSettingsScreenState extends State<OfflineSettingsScreen> {
             ),
           ],
         ),
+        // Bouton de téléchargement masqué pendant un téléchargement en cours.
         trailing: _isDownloading
             ? null
             : IconButton(

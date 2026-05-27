@@ -20,6 +20,7 @@ class _SymptomsListScreenState extends ConsumerState<SymptomsListScreen> {
   List<Symptom> _filteredSymptoms = [];
   String _searchQuery = '';
   Timer? _debounce;
+  // Evite de réinitialiser _filteredSymptoms à chaque rebuild une fois les données chargées.
   bool _initialized = false;
 
   @override
@@ -28,6 +29,12 @@ class _SymptomsListScreenState extends ConsumerState<SymptomsListScreen> {
     super.dispose();
   }
 
+  /*
+    Filtre la liste des symptômes avec un debounce de 300ms pour éviter
+    de recalculer à chaque frappe. La recherche porte sur le nom, la description
+    et le champ additionalInfo, ce qui permet par exemple de trouver
+    "Mal de gorge" en tapant "angine".
+  */
   void _runFilter(List<Symptom> allSymptoms, String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 300), () {
@@ -39,8 +46,6 @@ class _SymptomsListScreenState extends ConsumerState<SymptomsListScreen> {
             _filteredSymptoms = allSymptoms;
           } else {
             _filteredSymptoms = allSymptoms.where((s) {
-              // Cherche dans le nom, la description ET le "Bon à savoir"
-              // → permet de trouver "Mal de gorge" en tapant "angine"
               return removeDiacritics(s.name.toLowerCase()).contains(q) ||
                      removeDiacritics((s.description ?? '').toLowerCase()).contains(q) ||
                      removeDiacritics((s.additionalInfo ?? '').toLowerCase()).contains(q);
@@ -70,6 +75,7 @@ class _SymptomsListScreenState extends ConsumerState<SymptomsListScreen> {
           onRetry: () => ref.refresh(symptomsProvider),
         ),
         data: (symptoms) {
+          // Initialisation unique de la liste filtrée au premier chargement des données.
           if (!_initialized) {
             _initialized = true;
             _filteredSymptoms = symptoms;
@@ -150,6 +156,8 @@ class _SymptomsListScreenState extends ConsumerState<SymptomsListScreen> {
                                         .outlineVariant)),
                             child: InkWell(
                               onTap: () {
+                                // Le clavier est fermé avant la navigation pour éviter
+                                // un saut visuel à l'ouverture de l'écran suivant.
                                 FocusScope.of(context).unfocus();
                                 Navigator.push(
                                     context,

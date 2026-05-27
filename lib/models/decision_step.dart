@@ -8,7 +8,6 @@ class DecisionStep {
   final int? nextStepYes;
   final int? nextStepNo;
   final bool isEmergency;
-  // On change ici : c'est une liste de plantes
   final List<Plant> recommendedPlants;
 
   DecisionStep({
@@ -21,10 +20,13 @@ class DecisionStep {
     this.recommendedPlants = const [],
   });
 
+  /*
+    Désérialisation depuis deux sources possibles :
+    - API Directus : structure imbriquée recommended_remedies[{plants_id: {...}}]
+    - Cache local : structure aplatie saved_plants[{id, name, ...}]
+    Les deux chemins alimentent la même liste extractedPlants.
+  */
   factory DecisionStep.fromJson(Map<String, dynamic> json) {
-    // Extraction de la liste des plantes depuis la structure imbriquée de Directus
-    // structure API : recommended_remedies[ { plants_id: { ... } }, ... ]
-    // structure cache : saved_plants[ { id, name, ... }, ... ]
     List<Plant> extractedPlants = [];
 
     if (json['recommended_remedies'] != null && json['recommended_remedies'] is List) {
@@ -38,7 +40,6 @@ class DecisionStep {
         }
       }
     } else if (json['saved_plants'] != null && json['saved_plants'] is List) {
-      // Chargement depuis le cache offline (toJson sauvegarde sous 'saved_plants')
       for (var item in json['saved_plants']) {
         if (item is Map<String, dynamic>) {
           try {
@@ -61,6 +62,11 @@ class DecisionStep {
     );
   }
 
+  /*
+    Les plantes sont sérialisées dans les deux formats simultanément :
+    - recommended_remedies : format API, permet à fromJson de les relire directement
+    - saved_plants : format aplati, maintenu pour la compatibilité avec les anciens caches
+  */
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -69,9 +75,7 @@ class DecisionStep {
       'next_step_yes': nextStepYes,
       'next_step_no': nextStepNo,
       'is_emergency': isEmergency,
-      // Sauvegarde au format API (recommended_remedies) pour que fromJson les relise directement
       'recommended_remedies': recommendedPlants.map((p) => {'plants_id': p.toJson()}).toList(),
-      // Garde aussi saved_plants pour compatibilite avec anciens caches
       'saved_plants': recommendedPlants.map((p) => p.toJson()).toList(),
     };
   }

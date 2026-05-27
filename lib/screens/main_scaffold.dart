@@ -12,6 +12,12 @@ import 'problems_index_screen.dart';
 import '../widgets/main_drawer.dart';
 import '../widgets/offline_banner.dart';
 
+/*
+  Scaffold principal de l'application.
+  Gère la navigation entre les quatre onglets via une NavigationBar en bas
+  et un MainDrawer latéral. L'OfflineBanner est placé au-dessus du contenu
+  pour rester visible sur tous les écrans sans modifier chaque page.
+*/
 class MainScaffold extends ConsumerStatefulWidget {
   const MainScaffold({super.key});
 
@@ -28,6 +34,10 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
     });
   }
 
+  /*
+    Lit les listes de plantes et symptômes déjà chargées en mémoire
+    pour les passer au GlobalSearchDelegate sans déclencher de nouvel appel réseau.
+  */
   void _openGlobalSearch(BuildContext context) {
     final plants = ref.read(plantsProvider).asData?.value ?? [];
     final symptoms = ref.read(symptomsProvider).asData?.value ?? [];
@@ -65,6 +75,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
           ],
         ),
         centerTitle: true,
+        // La recherche est masquée sur l'accueil car HomeScreen dispose de sa propre barre de recherche.
         actions: [
           if (_currentIndex != 0)
             IconButton(
@@ -80,6 +91,7 @@ class _MainScaffoldState extends ConsumerState<MainScaffold> {
       body: Column(
         children: [
           const OfflineBanner(),
+          // IndexedStack conserve l'état de chaque page lors des changements d'onglet.
           Expanded(
             child: IndexedStack(
               index: _currentIndex,

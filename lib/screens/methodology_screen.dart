@@ -43,6 +43,12 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
     super.dispose();
   }
 
+  /*
+    Les quatre appels sont lancés en parallèle (then/catchError indépendants)
+    pour ne pas bloquer l'affichage d'une section si une autre est plus lente.
+    _loadingFilters passe à false dès que pendingReferences est reçu,
+    _loadingRefs dès que allReferences est reçu.
+  */
   Future<void> _loadData() async {
     if (mounted) setState(() { _loadingFilters = true; _loadingRefs = true; _hasError = false; });
 
@@ -77,6 +83,10 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
     });
   }
 
+  /*
+    Filtre les références selon le filtre plante actif et la recherche textuelle,
+    puis les regroupe par nom de plante pour l'affichage en accordéons.
+  */
   Map<String, List<Reference>> get _filteredGroupedReferences {
     final search = _searchQuery.toLowerCase();
     final filtered = _allReferences.where((ref) {
@@ -103,11 +113,12 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Démarche scientifique')),
+      // ErrorView uniquement si toutes les sections sont vides et en erreur.
       body: _hasError && _allReferences.isEmpty && _pendingReferences.isEmpty && _genericReferences.isEmpty
           ? ErrorView(isOffline: true, onRetry: _loadData)
           : CustomScrollView(
         slivers: [
-          // INTRO
+          // Section d'introduction avec filtre par plante et barre de recherche.
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -173,7 +184,7 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
             ),
           ),
 
-          // REFERENCES EN ACCORDEONS
+          // Références bibliographiques groupées par plante en accordéons.
           if (_loadingRefs)
             const SliverToBoxAdapter(
               child: Padding(
@@ -205,7 +216,7 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
               ),
             ),
 
-          // ETUDES PROMETTEUSES
+          // Etudes prometteuses : plantes sans fiche dédiée mais avec des données préliminaires.
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 40, 20, 16),
@@ -282,7 +293,6 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
               ),
             ),
 
-          // OUVRAGES GENERAUX
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -328,6 +338,8 @@ class _MethodologyScreenState extends State<MethodologyScreen> {
   }
 }
 
+// Accordéon affichant les références bibliographiques d'une plante.
+// Le badge indique le nombre de références disponibles pour cette plante.
 class _ReferenceAccordion extends StatelessWidget {
   final String plantName;
   final List<Reference> references;

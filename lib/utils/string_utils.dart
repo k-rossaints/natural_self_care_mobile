@@ -1,3 +1,8 @@
+/*
+  Supprime les accents et diacritiques d'une chaîne de caractères.
+  Utilisé avant toute comparaison de texte dans la recherche,
+  pour qu'une saisie sans accent corresponde à un contenu accentué.
+*/
 String removeDiacritics(String str) {
   const withDia =
       'ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž';

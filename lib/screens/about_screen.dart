@@ -5,6 +5,7 @@ import '../theme.dart';
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
+  // Ouvre un lien externe dans le navigateur par défaut de l'appareil.
   Future<void> _launchURL(String urlString) async {
     final Uri url = Uri.parse(urlString);
     try {
@@ -16,6 +17,7 @@ class AboutScreen extends StatelessWidget {
     }
   }
 
+  // Ouvre le client mail natif avec l'adresse de contact pré-remplie.
   Future<void> _launchEmail() async {
     final Uri emailLaunchUri = Uri(scheme: 'mailto', path: 'contact@asc-geneve.ch');
     try {
@@ -37,7 +39,6 @@ class AboutScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- SECTION ORIGINE & LIVRE ---
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
@@ -56,6 +57,7 @@ class AboutScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
+                  // Couverture du livre cliquable, redirige vers la page de l'éditeur.
                   GestureDetector(
                     onTap: () => _launchURL("https://www.editionsfavre.com/livres/33-plantes-validees-scientifiquement-les/"),
                     child: Container(
@@ -161,6 +163,7 @@ class AboutScreen extends StatelessWidget {
     );
   }
 
+  // Carte partenaire cliquable avec logo, nom et icône d'ouverture externe.
   Widget _buildPartnerLink(BuildContext context, String imagePath, String title, String url) {
     final cs = Theme.of(context).colorScheme;
     return Card(

@@ -1,10 +1,16 @@
+/*
+  Référence bibliographique associée à une plante spécifique.
+  Le champ plantName est extrait de l'objet imbriqué plant retourné par l'API,
+  et utilisé pour trier les références par plante dans l'écran Démarche scientifique
+  et pour reconstituer le lien plante-référence depuis le cache local.
+*/
 class Reference {
   final int id;
   final String fullReference;
-  final String? plantName; // Nouveau champ pour le tri
+  final String? plantName;
 
   Reference({
-    required this.id, 
+    required this.id,
     required this.fullReference,
     this.plantName,
   });
@@ -21,6 +27,8 @@ class Reference {
     );
   }
 
+  // plantName est resérialisé sous forme d'objet pour rester compatible
+  // avec la structure attendue par fromJson lors de la relecture du cache.
   Map<String, dynamic> toJson() => {
     'id': id,
     'full_reference': fullReference,

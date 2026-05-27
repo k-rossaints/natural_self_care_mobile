@@ -12,12 +12,16 @@ import '../providers/symptoms_provider.dart';
 import 'plant_detail_screen.dart';
 import 'decision_session_screen.dart';
 
-/// Résultat de recherche avec contexte et priorité
+/*
+  Classe interne représentant un résultat de recherche avec son contexte.
+  Même structure que dans GlobalSearchDelegate, dupliquée ici car HomeScreen
+  gère sa propre barre de recherche inline indépendante du SearchDelegate.
+*/
 class _SearchResult {
   final dynamic item; // Plant ou Symptom
   final int tier; // 1=nom, 2=métadonnées, 3=contenu complet
-  final String? matchField; // Ex: "Préparation", "Effets secondaires"
-  final String? matchSnippet; // Ex: "...une cuillère à café de..."
+  final String? matchField;
+  final String? matchSnippet;
 
   _SearchResult({required this.item, required this.tier, this.matchField, this.matchSnippet});
 }
@@ -58,6 +62,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  // Debounce de 300ms avant de lancer la recherche pour éviter de recalculer à chaque frappe.
   void _onSearchChanged(String query, List<Plant> plants, List<Symptom> symptoms) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     if (query.trim().isEmpty) {
@@ -69,6 +74,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
+  // Extrait un extrait de texte centré autour de la première occurrence de la requête.
   String? _extractSnippet(String? text, String query) {
     if (text == null || text.isEmpty) return null;
     final normalized = removeDiacritics(text.toLowerCase());
@@ -88,12 +94,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return normalized.contains(query) ? _extractSnippet(fieldValue, query) : null;
   }
 
+  /*
+    Algorithme de recherche par tiers, identique à GlobalSearchDelegate.
+    - Tier 1 : nom principal
+    - Tier 2 : champs secondaires (nom scientifique, indications, habitat)
+    - Tier 3 : contenu complet (description, préparation, précautions...)
+    À tier égal, les symptômes apparaissent avant les plantes.
+  */
   void _performSearch(String query, List<Plant> plants, List<Symptom> symptoms) {
     final q = removeDiacritics(query.toLowerCase());
     final List<_SearchResult> results = [];
     final Set<int> addedPlantIds = {};
 
-    // --- SYMPTÔMES ---
     for (final s in symptoms) {
       final nameMatch = removeDiacritics(s.name.toLowerCase()).contains(q);
       final descMatch = removeDiacritics((s.description ?? '').toLowerCase()).contains(q);
@@ -107,7 +119,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     }
 
-    // Tier 1 : nom exact
     for (final p in plants) {
       final name = removeDiacritics(p.name.toLowerCase());
       if (name.contains(q)) {
@@ -116,7 +127,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     }
 
-    // Tier 2 : nom scientifique, noms communs, symptômes/indications
     for (final p in plants) {
       if (addedPlantIds.contains(p.id)) continue;
       final sci = removeDiacritics((p.scientificName ?? '').toLowerCase());
@@ -140,7 +150,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     }
 
-    // Tier 3 : contenu complet
     final contentFields = <String, String? Function(Plant)>{
       'Description': (p) => p.descriptionShort,
       'Préparation': (p) => p.usagePreparation,
@@ -204,11 +213,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final plantsAsync = ref.watch(plantsProvider);
     final symptomsAsync = ref.watch(symptomsProvider);
 
+    // Les listes sont lues depuis les providers déjà chargés, sans appel réseau supplémentaire.
     final plants = plantsAsync.asData?.value ?? [];
     final symptoms = symptomsAsync.asData?.value ?? [];
 
     return Scaffold(
       body: GestureDetector(
+        // Un tap en dehors de la barre de recherche ferme le clavier et masque les résultats.
         onTap: () {
           _searchFocus.unfocus();
           setState(() => _isSearching = false);
@@ -217,7 +228,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // HEADER
+              // En-tête avec dégradé teal, guide utilisateur et barre de recherche intégrée.
               Container(
                 padding: const EdgeInsets.fromLTRB(20, 60, 20, 40),
                 decoration: const BoxDecoration(
@@ -245,7 +256,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       style: TextStyle(fontSize: 15, color: Colors.white.withOpacity(0.9), height: 1.4),
                     ),
                     const SizedBox(height: 12),
-                    // Guide utilisateur aligné
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
@@ -265,7 +275,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     const SizedBox(height: 30),
 
-                    // BARRE DE RECHERCHE
                     Container(
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.surface,
@@ -300,7 +309,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
 
-              // RÉSULTATS DE RECHERCHE
+              // Dropdown de résultats affiché sous la barre de recherche, limité en hauteur.
               if (_isSearching && _searchController.text.length >= 2)
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -331,7 +340,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
               const SizedBox(height: 20),
 
-              // BOUTONS D'ACTION
+              // Cartes de navigation vers les trois sections principales de l'application.
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
@@ -365,7 +374,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
               const SizedBox(height: 40),
 
-              // PARTENAIRES
               Center(child: Text("NOS PARTENAIRES", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey[400], letterSpacing: 1.5))),
               const SizedBox(height: 20),
               Padding(
@@ -389,6 +397,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  /*
+    Construit un item de résultat adapté selon le type (Plant ou Symptom).
+    Pour les plantes, une miniature avec hero animation est affichée.
+    Le champ matchField et le snippet sont affichés pour les résultats tier 2 et 3.
+  */
   Widget _buildResultItem(_SearchResult sr) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final tealColor = isDark ? AppTheme.tealDark : AppTheme.teal1;
@@ -523,6 +536,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  // Logo partenaire cliquable ouvrant le site de l'organisation dans le navigateur externe.
   Widget _buildPartnerLogo(String assetPath, String url) {
     return InkWell(
       onTap: () => _launchPartnerUrl(url),

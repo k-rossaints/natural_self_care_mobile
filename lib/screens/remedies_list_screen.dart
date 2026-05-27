@@ -11,6 +11,7 @@ import '../widgets/error_view.dart';
 import 'plant_detail_screen.dart';
 import '../theme.dart';
 
+// Nombre de plantes chargées par page lors du scroll infini.
 const int _pageSize = 10;
 
 class RemediesListScreen extends ConsumerStatefulWidget {
@@ -54,6 +55,7 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
     super.dispose();
   }
 
+  // Charge la page suivante lorsque l'utilisateur approche de la fin de la liste.
   void _onScroll() {
     if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
       _loadMore();
@@ -70,6 +72,11 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
     });
   }
 
+  /*
+    Initialisation unique des listes de filtres disponibles à partir des données chargées.
+    Les valeurs sont dédupliquées via un Set puis triées alphabétiquement
+    pour alimenter les dropdowns.
+  */
   void _initFromPlants(List<Plant> plants) {
     if (_initialized) return;
     _initialized = true;
@@ -87,6 +94,11 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
     _applyFilters(plants);
   }
 
+  /*
+    Applique les filtres actifs (habitat, affection, recherche textuelle) sur la liste complète.
+    La pagination est réinitialisée à chaque nouveau filtre pour repartir de la première page.
+    La recherche textuelle couvre tous les champs textuels de la plante.
+  */
   void _applyFilters(List<Plant> allPlants) {
     final filtered = allPlants.where((plant) {
       if (_selectedHabitat != null && plant.habitat?.trim() != _selectedHabitat) return false;
@@ -117,6 +129,7 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
     _hasMore = filtered.length > _pageSize;
   }
 
+  // Comparaison insensible à la casse et aux accents via removeDiacritics.
   bool _fuzzyMatch(String source, String query) {
     if (query.isEmpty) return true;
     final s = removeDiacritics(source.toLowerCase());
@@ -138,6 +151,11 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
         ),
         error: (e, _) => ErrorView(isOffline: true, onRetry: () => ref.refresh(plantsProvider)),
         data: (plants) {
+          /*
+            L'initialisation est différée via addPostFrameCallback pour éviter
+            d'appeler setState pendant un build en cours, ce qui provoquerait
+            une exception Flutter.
+          */
           if (!_initialized) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               setState(() => _initFromPlants(plants));
@@ -149,7 +167,6 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
             controller: _scrollController,
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             slivers: [
-              // EN-TÊTE
               SliverAppBar(
                 expandedHeight: 80.0,
                 floating: false,
@@ -169,7 +186,7 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
                 ),
               ),
 
-              // FILTRES
+              // Barre de filtres épinglée en haut lors du scroll via SliverPersistentHeader.
               SliverPersistentHeader(
                 pinned: true,
                 delegate: _StickyFilterHeaderDelegate(
@@ -287,7 +304,7 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
                 ),
               ),
 
-              // RÉSULTATS
+              // Liste des résultats avec indicateur de chargement en bas lors du scroll infini.
               _displayedPlants.isEmpty
                   ? SliverToBoxAdapter(
                       child: Padding(
@@ -350,6 +367,11 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
     );
   }
 
+  /*
+    Dropdown stylisé utilisé pour les filtres affection et habitat.
+    La bordure et la couleur de fond s'adaptent selon qu'un filtre est actif ou non,
+    et selon le thème courant.
+  */
   Widget _buildDropdown(
     BuildContext context, {
     required String hint,
@@ -394,6 +416,7 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
               style: const TextStyle(fontSize: 13, color: Colors.grey),
             ),
           ]),
+          // L'icône de fermeture permet de réinitialiser le filtre sans passer par le dropdown.
           icon: value != null
               ? GestureDetector(
                   onTap: () => onChanged(null),
@@ -426,6 +449,11 @@ class _RemediesListScreenState extends ConsumerState<RemediesListScreen> {
   }
 }
 
+/*
+  Délégué pour le SliverPersistentHeader qui maintient la barre de filtres
+  visible en haut de l'écran pendant le scroll. maxExtent et minExtent sont
+  identiques pour empêcher toute animation de réduction du header.
+*/
 class _StickyFilterHeaderDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
   final double maxHeight;

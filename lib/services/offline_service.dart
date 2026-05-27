@@ -9,12 +9,18 @@ import '../models/reference.dart';
 import '../models/generic_reference.dart';
 import '../models/pending_reference.dart';
 
+/*
+  Service de persistance locale pour le mode hors ligne.
+  Toutes les données sont sérialisées en JSON et stockées via SharedPreferences.
+  Le service est implémenté en singleton pour garantir une instance unique
+  partagée dans toute l'application.
+*/
 class OfflineService {
   static final OfflineService _instance = OfflineService._internal();
   factory OfflineService() => _instance;
   OfflineService._internal();
 
-  // Clés de stockage
+  // Clés de stockage SharedPreferences
   static const String KEY_PLANTS = 'offline_plants';
   static const String KEY_SYMPTOMS = 'offline_symptoms';
   static const String KEY_STEPS = 'offline_steps';
@@ -26,7 +32,7 @@ class OfflineService {
   static const String KEY_DATE_PATHS = 'offline_date_paths';
   static const String KEY_DATE_METHODOLOGY = 'offline_date_methodology';
 
-  // --- 1. Réglages ---
+  // --- Réglages ---
 
   Future<void> setSaveImages(bool value) async {
     final prefs = await SharedPreferences.getInstance();
@@ -38,11 +44,13 @@ class OfflineService {
     return prefs.getBool(KEY_SAVE_IMAGES) ?? false;
   }
 
+  // Formate la date courante pour l'afficher dans l'écran de paramètres hors ligne.
   String _getCurrentDate() {
     final now = DateTime.now();
     return "${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year} ${now.hour}:${now.minute.toString().padLeft(2, '0')}";
   }
 
+  // Retourne les dates de dernière synchronisation pour chaque catégorie de données.
   Future<Map<String, String?>> getSyncDates() async {
     final prefs = await SharedPreferences.getInstance();
     return {
@@ -52,7 +60,9 @@ class OfflineService {
     };
   }
 
-  // --- 2. Sauvegarde automatique (appelée après chaque chargement réseau) ---
+  // --- Sauvegarde automatique ---
+  // Ces méthodes sont appelées après chaque chargement réseau réussi
+  // pour maintenir le cache local à jour sans action de l'utilisateur.
 
   Future<void> autoSavePlants(List<Plant> plants) async {
     try {
@@ -103,7 +113,9 @@ class OfflineService {
     }
   }
 
-  // --- 3. Lecture locale ---
+  // --- Lecture locale ---
+  // Chaque méthode désérialise le JSON stocké et retourne une liste typée.
+  // Retourne une liste vide si aucune donnée n'a encore été sauvegardée.
 
   Future<List<Plant>> getLocalPlants() async {
     final prefs = await SharedPreferences.getInstance();
@@ -133,11 +145,13 @@ class OfflineService {
     return (jsonDecode(data) as List).map((json) => Reference.fromJson(json)).toList();
   }
 
-  /// Retourne les références d'une plante spécifique depuis le cache local
+  /*
+    Les références sont stockées globalement sans identifiant de plante.
+    Le lien est reconstitué en récupérant le nom de la plante depuis le cache
+    local, puis en filtrant les références correspondantes.
+  */
   Future<List<Reference>> getLocalReferencesForPlant(int plantId) async {
     final all = await getLocalAllReferences();
-    // Les références par plante sont stockées sans plantName dans KEY_ALL_REFERENCES
-    // On les récupère depuis le cache plantes pour faire le lien
     final plants = await getLocalPlants();
     final plant = plants.where((p) => p.id == plantId).firstOrNull;
     if (plant == null) return [];
@@ -158,8 +172,8 @@ class OfflineService {
     return (jsonDecode(data) as List).map((json) => PendingReference.fromJson(json)).toList();
   }
 
-  // --- 5. Nettoyage ---
-
+  // --- Nettoyage ---
+  // Supprime toutes les données locales et vide le cache images géré par flutter_cache_manager.
   Future<void> clearAllData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(KEY_PLANTS);

@@ -26,6 +26,11 @@ class _ProblemsIndexScreenState extends ConsumerState<ProblemsIndexScreen> {
   String _searchQuery = '';
   bool _initialized = false;
 
+  /*
+    Construit l'index des problèmes à partir de la liste des plantes.
+    Chaque affection devient une clé associant toutes les plantes qui la traitent.
+    Les clés sont triées alphabétiquement pour l'affichage par lettre.
+  */
   void _buildIndex(List<Plant> plants) {
     if (_initialized) return;
     _initialized = true;
@@ -76,6 +81,7 @@ class _ProblemsIndexScreenState extends ConsumerState<ProblemsIndexScreen> {
           onRetry: () => ref.refresh(plantsProvider),
         ),
         data: (plants) {
+          // Différé via addPostFrameCallback pour éviter un setState pendant le build.
           if (!_initialized) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               setState(() => _buildIndex(plants));
@@ -118,6 +124,8 @@ class _ProblemsIndexScreenState extends ConsumerState<ProblemsIndexScreen> {
                           final ailmentName = _filteredKeys[index];
                           final relatedPlants = _problemsMap[ailmentName]!;
                           final letter = ailmentName[0].toUpperCase();
+                          // L'en-tête alphabétique n'est affiché que lorsqu'aucun filtre
+                          // n'est actif, pour ne pas fragmenter les résultats de recherche.
                           final bool showHeader = index == 0 || _filteredKeys[index - 1][0].toUpperCase() != letter;
 
                           return Column(
@@ -135,6 +143,7 @@ class _ProblemsIndexScreenState extends ConsumerState<ProblemsIndexScreen> {
                                 child: ExpansionTile(
                                   shape: const Border(),
                                   title: Text(ailmentName, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
+                                  // Badge affichant le nombre de plantes associées à l'affection.
                                   trailing: Builder(builder: (ctx) {
                                     final dark = Theme.of(ctx).brightness == Brightness.dark;
                                     final tc = dark ? AppTheme.tealDark : AppTheme.teal1;

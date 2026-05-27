@@ -1,3 +1,6 @@
+// Référence en cours de validation scientifique.
+// Regroupe une affirmation (claim) et les données disponibles à ce jour,
+// affichées dans l'écran Démarche scientifique pour indiquer les limites actuelles des preuves.
 class PendingReference {
   final int id;
   final String topic;

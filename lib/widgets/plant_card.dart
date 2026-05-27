@@ -4,6 +4,11 @@ import '../models/plant.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
 
+/*
+  Carte affichant les informations principales d'une plante.
+  Le rendu visuel s'adapte au thème : ombre légère en mode clair,
+  bordure fine et fond sombre en mode sombre.
+*/
 class PlantCard extends StatelessWidget {
   final Plant plant;
   final VoidCallback onTap;
@@ -32,6 +37,7 @@ class PlantCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(20),
+        // clipBehavior requis pour que l'effet ripple de InkWell respecte le borderRadius.
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
@@ -39,6 +45,8 @@ class PlantCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // IMAGE
+              // CachedNetworkImage met l'image en cache pour éviter de la recharger
+              // à chaque rebuild. memCacheHeight limite la taille en mémoire.
               Container(
                 height: 160,
                 width: double.infinity,
@@ -78,6 +86,8 @@ class PlantCard extends StatelessWidget {
                         ]),
                       ),
                     const SizedBox(height: 12),
+                    // Affiche au maximum 3 affections sous forme de tags.
+                    // L'opacité du fond du tag varie selon le thème pour rester lisible.
                     if (plant.ailments.isNotEmpty)
                       Wrap(
                         spacing: 6, runSpacing: 6,

@@ -8,11 +8,19 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/theme_provider.dart';
 
+/*
+  Drawer principal de l'application.
+  Permet la navigation entre les onglets principaux et l'accès aux écrans
+  secondaires (À propos, Démarche scientifique, Mode hors ligne).
+  ConsumerWidget est utilisé pour accéder au themeModeProvider et permettre
+  le basculement clair/sombre depuis le drawer.
+*/
 class MainDrawer extends ConsumerWidget {
   final Function(int) onTabChange;
 
   const MainDrawer({super.key, required this.onTabChange});
 
+  // Ouvre un lien externe dans le navigateur par défaut de l'appareil.
   Future<void> _launchURL(String urlString) async {
     final Uri url = Uri.parse(urlString);
     try {
@@ -47,6 +55,7 @@ class MainDrawer extends ConsumerWidget {
                         decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
                         child: SvgPicture.asset(
                           'assets/favicon.svg',
+                          // colorFilter applique la teinte teal1 sur le SVG blanc.
                           colorFilter: const ColorFilter.mode(AppTheme.teal1, BlendMode.srcIn),
                         ),
                       ),
@@ -59,6 +68,8 @@ class MainDrawer extends ConsumerWidget {
                   ),
                 ),
 
+                // Navigation vers les onglets principaux.
+                // onTabChange ferme le drawer et change l'onglet actif dans MainScaffold.
                 ListTile(
                   leading: Icon(Icons.home_filled, color: tealColor),
                   title: const Text('Accueil', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -103,6 +114,8 @@ class MainDrawer extends ConsumerWidget {
                   },
                 ),
 
+                // Switch de basculement thème clair/sombre.
+                // L'icône et le label s'inversent selon l'état actuel.
                 ListTile(
                   leading: Icon(isDarkMode ? Icons.light_mode : Icons.dark_mode, color: tealColor),
                   title: Text(isDarkMode ? 'Mode clair' : 'Mode sombre'),
@@ -134,13 +147,13 @@ class MainDrawer extends ConsumerWidget {
 
                 const Divider(),
 
+                // Liens légaux ouverts dans le navigateur externe via _launchURL.
                 ListTile(
                   leading: const Icon(Icons.privacy_tip_outlined, color: Colors.grey),
                   title: const Text('Politique de confidentialité', style: TextStyle(fontSize: 14)),
                   dense: true,
                   onTap: () => _launchURL('https://www.natural-self-care.ch/confidentialite'),
                 ),
-
                 ListTile(
                   leading: const Icon(Icons.gavel_outlined, color: Colors.grey),
                   title: const Text('Mentions légales', style: TextStyle(fontSize: 14)),

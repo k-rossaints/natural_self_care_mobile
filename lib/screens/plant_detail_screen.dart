@@ -33,11 +33,17 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
   @override
   void initState() {
     super.initState();
+    // La plante passée en paramètre sert d'affichage immédiat pendant le chargement complet.
     _displayPlant = widget.plant;
     _loadFullDetails();
     _loadReferences();
   }
 
+  /*
+    Tente de charger les détails complets depuis le réseau.
+    En cas d'échec, tombe en fallback sur le cache local via OfflineService.
+    Le flag _loadingDetails affiche une barre de progression en attendant.
+  */
   Future<void> _loadFullDetails() async {
     try {
       final fullPlant = await _api.getPlantDetails(widget.plant.id);
@@ -80,6 +86,12 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
     Share.share('Découvrez les bienfaits de ${_displayPlant.name} sur Natural Self-Care : https://www.natural-self-care.ch/plantes/${_displayPlant.slug ?? ""}');
   }
 
+  /*
+    Génère une fiche PDF complète de la plante via le package pdf/printing.
+    L'image est téléchargée séparément via http car CachedNetworkImage
+    ne fournit pas directement les bytes nécessaires au rendu PDF.
+    La mise en page reproduit les mêmes sections que l'écran Flutter.
+  */
   Future<void> _generatePdf(BuildContext context) async {
     final pdf = pw.Document();
     final plant = _displayPlant;
@@ -114,6 +126,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
         margin: const pw.EdgeInsets.symmetric(horizontal: 40, vertical: 30),
         build: (pw.Context context) {
           return [
+            // En-tête : nom, nom scientifique, badges et description courte.
             pw.Container(
               padding: const pw.EdgeInsets.only(bottom: 20),
               margin: const pw.EdgeInsets.only(bottom: 20),
@@ -227,6 +240,11 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
     );
   }
 
+  /*
+    Carte PDF non découpable (pw.Wrap) pour éviter qu'une section soit
+    coupée entre deux pages. Chaque section a un en-tête coloré et un
+    contenu avec padding uniforme.
+  */
   pw.Widget _pdfUnbreakableCard(String title, pw.IconData icon, PdfColor accentColor, PdfColor bgColor, List<pw.Widget> children) {
     return pw.Wrap(
       children: [
@@ -320,6 +338,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
+          // AppBar avec image en hero animation pour une transition fluide depuis les listes.
           SliverAppBar(
             expandedHeight: 280.0,
             floating: false,
@@ -362,6 +381,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Barre de progression affichée pendant le chargement des détails complets.
                   if (_loadingDetails)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 20.0),
@@ -378,6 +398,7 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
 
                   Text(plant.scientificName ?? '', style: TextStyle(fontStyle: FontStyle.italic, color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 18, fontFamily: 'Serif')),
 
+                  // Noms communs affichés sous forme de tags individuels.
                   if (plant.commonNames != null && plant.commonNames!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
@@ -411,6 +432,8 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
                     ]),
                   const SizedBox(height: 32),
 
+                  // Sections dépliables (_PlantSection) affichées conditionnellement
+                  // selon la disponibilité des données dans le modèle.
                   if ((plant.safetyPrecautions != null && plant.safetyPrecautions!.isNotEmpty) || (plant.sideEffects != null && plant.sideEffects!.isNotEmpty))
                     _PlantSection(
                       title: "Précautions & Sécurité",
@@ -571,18 +594,6 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
     );
   }
 
-  BoxDecoration _cardDecoration(Color bg, Color border) {
-    return BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: border.withOpacity(0.3)), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5, offset: const Offset(0, 2))]);
-  }
-
-  Widget _cardHeader(String title, IconData icon, Color bg, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: bg, borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12))),
-      child: Row(children: [Icon(icon, color: color), const SizedBox(width: 10), Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 18))]),
-    );
-  }
-
   Widget _supplyRow(IconData icon, String label, String value) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
@@ -596,6 +607,13 @@ class _PlantDetailScreenState extends State<PlantDetailScreen> {
   }
 }
 
+/*
+  Widget réutilisable pour chaque section de la fiche plante.
+  Utilise un ExpansionTile pour permettre à l'utilisateur de replier
+  les sections moins prioritaires. initiallyExpanded est passé en paramètre
+  pour que les sections critiques (précautions, mode d'emploi) soient
+  ouvertes par défaut.
+*/
 class _PlantSection extends StatelessWidget {
   final String title;
   final IconData icon;
@@ -626,6 +644,8 @@ class _PlantSection extends StatelessWidget {
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.15 : 0.04), blurRadius: 5, offset: const Offset(0, 2))],
       ),
       child: Theme(
+        // dividerColor transparent pour supprimer la ligne de séparation
+        // par défaut de l'ExpansionTile, qui entre en conflit avec le border du Container.
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           initiallyExpanded: initiallyExpanded,

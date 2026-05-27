@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 
+/*
+  Widget affichant un texte tronqué avec un bouton "Voir plus / Voir moins".
+  Supporte deux modes : texte simple (Text) ou sélectionnable (SelectableText),
+  selon le paramètre selectable.
+*/
 class ExpandableText extends StatefulWidget {
   final String text;
   final int maxLines;
@@ -21,7 +26,6 @@ class ExpandableText extends StatefulWidget {
 
 class _ExpandableTextState extends State<ExpandableText> {
   bool _expanded = false;
-  final bool _overflows = false;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +35,11 @@ class _ExpandableTextState extends State<ExpandableText> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Mesure si le texte déborde vraiment avec les maxLines donnés
+        /*
+          TextPainter est utilisé pour mesurer le texte avant rendu
+          et déterminer s'il dépasse effectivement le nombre de lignes autorisé.
+          Cela évite d'afficher le bouton "Voir plus" inutilement sur des textes courts.
+        */
         final tp = TextPainter(
           text: TextSpan(text: widget.text, style: style),
           maxLines: widget.maxLines,
@@ -55,6 +63,7 @@ class _ExpandableTextState extends State<ExpandableText> {
                     maxLines: _expanded ? null : widget.maxLines,
                     overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
                   ),
+            // Le bouton n'est affiché que si le texte déborde réellement.
             if (overflows) ...[
               const SizedBox(height: 6),
               GestureDetector(

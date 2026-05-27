@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
 
+/*
+  Widget d'erreur générique affiché lorsqu'un chargement échoue.
+  Le paramètre isOffline adapte l'icône et le message pour distinguer
+  une erreur réseau d'une erreur applicative classique.
+*/
 class ErrorView extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;

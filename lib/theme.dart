@@ -1,29 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+/*
+  Classe centrale de configuration visuelle de l'application.
+  Regroupe toutes les constantes de couleur et les deux thèmes (clair/sombre)
+  utilisés par MaterialApp. Tout est statique, aucune instanciation nécessaire.
+*/
 class AppTheme {
-  // Couleurs primaires
   static const Color teal1 = Color(0xFF0AA6B2);
   static const Color teal2 = Color(0xFF16C98F);
   static const Color border = Color(0xFF76CDBB);
   static const Color active = Color(0xFF6CC9AD);
   static const Color background = Color(0xFFFAFAFA);
 
-  // Couleurs light
   static const Color textDark = Color(0xFF2C3E50);
   static const Color textGrey = Color(0xFF64748B);
   static const Color danger = Color(0xFFEF4444);
 
-  // Couleurs dark — neutres, sans teinte teal
   static const Color darkBackground = Color(0xFF121212);
   static const Color darkSurface = Color(0xFF1E1E1E);
   static const Color darkCard = Color(0xFF2A2A2A);
   static const Color darkTextPrimary = Color(0xFFE8E8E8);
   static const Color darkTextSecondary = Color(0xFFAAAAAA);
 
-  // Teal plus lisible en dark mode
+  // Variante teal plus claire pour garantir un contraste lisible sur fond sombre.
   static const Color tealDark = Color(0xFF4DD9E4);
 
+  /*
+    Thème clair. Le ColorScheme est généré depuis teal1 comme graine,
+    avec primary et secondary explicitement surchargés.
+    surfaceTintColor est forcé à blanc pour neutraliser la teinte automatique Material 3.
+  */
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
@@ -53,8 +60,13 @@ class AppTheme {
     );
   }
 
+  /*
+    Thème sombre. Le ColorScheme est défini manuellement via ColorScheme.dark
+    plutôt que généré depuis une graine, afin d'empêcher Flutter d'appliquer
+    automatiquement des teintes teal sur les surfaces de fond.
+    Les niveaux surfaceContainer* couvrent les conteneurs imbriqués Material 3.
+  */
   static ThemeData get darkTheme {
-    // On construit un ColorScheme explicite pour éviter les teintes teal sur les surfaces
     const darkColorScheme = ColorScheme.dark(
       primary: teal1,
       onPrimary: Colors.white,
@@ -79,12 +91,17 @@ class AppTheme {
       brightness: Brightness.dark,
       colorScheme: darkColorScheme,
       scaffoldBackgroundColor: darkBackground,
+      /*
+        La police Outfit est chargée depuis un ThemeData sombre temporaire
+        pour que google_fonts applique les bons styles de base en mode sombre.
+      */
       textTheme: GoogleFonts.outfitTextTheme(
         ThemeData(brightness: Brightness.dark).textTheme,
       ).apply(
         bodyColor: darkTextPrimary,
         displayColor: darkTextPrimary,
       ),
+      // En mode sombre, les cartes utilisent une bordure fine à la place de l'ombre.
       cardTheme: CardThemeData(
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -100,6 +117,10 @@ class AppTheme {
         centerTitle: true,
         elevation: 0,
       ),
+      /*
+        Icônes et labels de la barre de navigation inférieure adaptent leur couleur
+        selon l'état sélectionné/non sélectionné via WidgetStateProperty.
+      */
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: darkSurface,
         surfaceTintColor: Colors.transparent,

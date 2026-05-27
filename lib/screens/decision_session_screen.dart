@@ -7,6 +7,8 @@ import '../services/api_service.dart';
 import '../theme.dart';
 import 'plant_detail_screen.dart';
 
+// Enregistrement d'une étape déjà répondue, conservé dans l'historique
+// pour permettre le retour en arrière et la modification d'une réponse.
 class StepRecord {
   final DecisionStep step;
   final bool answer;
@@ -24,17 +26,16 @@ class DecisionSessionScreen extends StatefulWidget {
 
 class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
   final ApiService _api = ApiService();
-  
+
   List<DecisionStep> _allSteps = [];
   DecisionStep? _currentStep;
   final List<StepRecord> _history = [];
-  
+
   bool _isLoading = true;
   final ScrollController _scrollController = ScrollController();
 
   List<String> _futureQuestions = [];
-  // _hasMoreFuture n'est plus vraiment utile si on affiche tout, mais on le garde en sécurité
-  bool _hasMoreFuture = false; 
+  bool _hasMoreFuture = false;
 
   @override
   void initState() {
@@ -63,7 +64,13 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
     }
   }
 
-  // --- ALGORITHME DE PRÉVISUALISATION ---
+  /*
+    Calcule par BFS (parcours en largeur) toutes les questions accessibles
+    depuis l'étape courante, quelle que soit la combinaison de réponses.
+    Cette liste est affichée sous les boutons Oui/Non pour donner à l'utilisateur
+    un aperçu des questions à venir avant de répondre.
+    La limite à 50 itérations évite les boucles infinies sur des graphes cycliques.
+  */
   void _calculateFutureQuestions() {
     if (_currentStep == null || _currentStep!.type != 'question') {
       _futureQuestions = [];
@@ -79,7 +86,6 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
     if (_currentStep!.nextStepNo != null) queue.add(_currentStep!.nextStepNo!);
 
     int iterations = 0;
-    // MODIFICATION ICI : On passe la limite à 50 pour être sûr de tout prendre
     const int limit = 50;
     const int maxIter = 100;
 
@@ -99,13 +105,12 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
           }
         }
 
-        // On continue d'explorer tant qu'on n'a pas tout trouvé
         if (collectedContents.length < limit + 1) {
           if (step.nextStepYes != null) queue.add(step.nextStepYes!);
           if (step.nextStepNo != null) queue.add(step.nextStepNo!);
         }
       } catch (e) {
-        // Step introuvable
+        // Step introuvable, on continue le parcours.
       }
 
       if (collectedContents.length >= limit) break;
@@ -143,6 +148,8 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
       _calculateFutureQuestions();
     });
 
+    // Scroll automatique vers le bas après chaque réponse pour que
+    // la nouvelle question soit visible sans action manuelle.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -163,6 +170,8 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
     });
   }
 
+  // Retourne à une question précise dans l'historique et supprime
+  // toutes les réponses qui la suivent.
   void _editAt(int index) {
     setState(() {
       _currentStep = _history[index].step;
@@ -234,6 +243,7 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
               controller: _scrollController,
               padding: const EdgeInsets.all(20),
               children: [
+                // Encadré "Bon à savoir" affiché en tête de session si le symptôme en contient un.
                 if (widget.symptom.additionalInfo != null)
                   Builder(builder: (ctx) {
                     final isDark = Theme.of(ctx).brightness == Brightness.dark;
@@ -273,6 +283,8 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
     );
   }
 
+  // Carte d'une question déjà répondue, affichée en opacité réduite
+  // avec un lien "Modifier" pour revenir à cette étape.
   Widget _buildHistoryItem(int index, StepRecord record) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -336,6 +348,12 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
     );
   }
 
+  /*
+    Carte de l'étape active.
+    En mode question : affiche les boutons Oui/Non et la prévisualisation des questions suivantes.
+    En mode résultat : affiche les remèdes recommandés et le bouton Terminer.
+    La bordure rouge signale une situation d'urgence.
+  */
   Widget _buildCurrentStepCard(DecisionStep step) {
     bool isQuestion = step.type == 'question';
     bool isEmergency = step.isEmergency;
@@ -405,14 +423,13 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
                         ],
                       ),
 
-                      // --- SECTION QUESTIONS FUTURES ---
+                      // Prévisualisation des questions accessibles depuis l'étape courante.
                       if (_futureQuestions.isNotEmpty) ...[
                         const SizedBox(height: 24),
                         const Divider(color: Colors.grey),
                         const SizedBox(height: 12),
                         Align(
                           alignment: Alignment.centerLeft,
-                          // CORRECTION ICI : .toUpperCase() au lieu de uppercase: true
                           child: Text(
                             "Questions suivantes possibles :".toUpperCase(),
                             style: const TextStyle(
@@ -481,6 +498,8 @@ class _DecisionSessionScreenState extends State<DecisionSessionScreen> {
     );
   }
 
+  // Carte cliquable d'un remède recommandé à l'issue du parcours.
+  // Redirige vers la fiche détaillée de la plante.
   Widget _buildRecommendedPlantCard(Plant plant) {
     final imageUrl = plant.image != null ? _api.getImageUrl(plant.image!) : null;
     return Container(

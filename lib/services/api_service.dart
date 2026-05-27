@@ -12,7 +12,11 @@ import '../models/generic_reference.dart';
 import '../models/pending_reference.dart';
 import 'offline_service.dart';
 
-// --- FONCTIONS TOP-LEVEL POUR LES ISOLATES ---
+/*
+  Fonctions de parsing déclarées au niveau top-level (hors classe) pour pouvoir
+  être passées à compute(), qui exécute le parsing dans un isolate séparé
+  afin de ne pas bloquer le thread principal lors du traitement de grandes listes.
+*/
 List<Plant> _parsePlants(dynamic data) => (data as List).map((json) => Plant.fromJson(json)).toList();
 List<Symptom> _parseSymptoms(dynamic data) => (data as List).map((json) => Symptom.fromJson(json)).toList();
 List<DecisionStep> _parseDecisionSteps(dynamic data) => (data as List).map((json) => DecisionStep.fromJson(json)).toList();
@@ -20,6 +24,11 @@ List<Reference> _parseReferences(dynamic data) => (data as List).map((json) => R
 List<GenericReference> _parseGenericReferences(dynamic data) => (data as List).map((json) => GenericReference.fromJson(json)).toList();
 List<PendingReference> _parsePendingReferences(dynamic data) => (data as List).map((json) => PendingReference.fromJson(json)).toList();
 
+/*
+  Service principal d'accès aux données.
+  Implémenté en singleton pour partager une seule instance Dio dans l'application.
+  Tous les appels réseau passent par la stratégie cache-first définie dans _cacheFirst.
+*/
 class ApiService {
   static const String baseUrl = 'https://directus-rk4w4cskcos4kwwoc84s88ss.46.224.187.154.sslip.io';
 
@@ -38,9 +47,13 @@ class ApiService {
     return !result.contains(ConnectivityResult.none);
   }
 
-  /// Cache-first : retourne le cache immédiatement s'il existe,
-  /// puis rafraîchit en arrière-plan sans bloquer l'UI.
-  /// Si pas de cache, attend le réseau (premier lancement).
+  /*
+    Stratégie cache-first : si un cache local existe, il est retourné immédiatement
+    pendant qu'un rafraîchissement s'effectue en arrière-plan.
+    Si aucun cache n'est disponible (premier lancement), on attend la réponse réseau.
+    Cette approche garantit un affichage instantané des données même avec une
+    connexion lente.
+  */
   Future<T> _cacheFirst<T>({
     required Future<T> Function() fromNetwork,
     required Future<T> Function() fromCache,
@@ -48,14 +61,11 @@ class ApiService {
   }) async {
     final cached = await fromCache();
 
-    // Si on a un cache → on l'affiche immédiatement
     if (cached is List && (cached as List).isNotEmpty) {
-      // Rafraîchissement silencieux en arrière-plan
       _refreshInBackground(fromNetwork: fromNetwork, saveToCache: saveToCache);
       return cached;
     }
 
-    // Pas de cache → premier lancement, on attend le réseau
     if (await _hasConnection()) {
       try {
         final fresh = await fromNetwork();
@@ -69,7 +79,8 @@ class ApiService {
     throw Exception("Aucune donnée disponible. Vérifiez votre connexion.");
   }
 
-  /// Rafraîchit en arrière-plan sans bloquer, ignore les erreurs réseau
+  // Rafraîchissement silencieux en arrière-plan via Future.microtask.
+  // Les erreurs réseau sont ignorées pour ne pas impacter l'expérience utilisateur.
   void _refreshInBackground<T>({
     required Future<T> Function() fromNetwork,
     required Future<void> Function(T data) saveToCache,
@@ -86,7 +97,7 @@ class ApiService {
     });
   }
 
-  // --- PLANTES ---
+  // --- Plantes ---
 
   Future<List<Plant>> getPlantsFromNetwork() async {
     final response = await _dio.get('/items/plants', queryParameters: {
@@ -106,6 +117,8 @@ class ApiService {
     );
   }
 
+  // Tente de récupérer le détail d'une plante depuis le réseau.
+  // En cas d'échec, retourne la plante correspondante depuis le cache local.
   Future<Plant> getPlantDetails(int id) async {
     try {
       final response = await _dio.get('/items/plants/$id', queryParameters: {
@@ -122,7 +135,7 @@ class ApiService {
     }
   }
 
-  // --- SYMPTÔMES & DÉCISIONS ---
+  // --- Symptômes & parcours de décision ---
 
   Future<List<Symptom>> getSymptomsFromNetwork() async {
     final response = await _dio.get('/items/symptoms', queryParameters: {
@@ -159,10 +172,12 @@ class ApiService {
     );
   }
 
-  // --- RÉFÉRENCES & DÉMARCHE SCIENTIFIQUE ---
+  // --- Références & démarche scientifique ---
 
+  // Construit l'URL d'une image Directus avec redimensionnement et compression.
   String getImageUrl(String imageId) => '$baseUrl/assets/$imageId?width=600&quality=80&fit=cover';
 
+  // Références d'une plante spécifique : réseau d'abord, cache local en fallback.
   Future<List<Reference>> getReferences(int plantId) async {
     try {
       final response = await _dio.get('/items/references', queryParameters: {
@@ -176,6 +191,12 @@ class ApiService {
     }
   }
 
+  /*
+    Pour getAllReferences, getGenericReferences et getPendingReferences,
+    la sauvegarde en cache regroupe toujours les trois types de références
+    dans un seul appel autoSaveMethodology, pour maintenir la cohérence
+    des données de la démarche scientifique.
+  */
   Future<List<Reference>> getAllReferences() async {
     final offline = OfflineService();
     return _cacheFirst(
@@ -236,8 +257,14 @@ class ApiService {
     );
   }
 
-  // --- TÉLÉCHARGEMENT MANUEL (mode hors ligne) ---
+  // --- Téléchargement manuel (mode hors ligne) ---
 
+  /*
+    Ces méthodes sont déclenchées depuis l'écran de paramètres hors ligne.
+    Si l'option de sauvegarde des images est activée, les images sont
+    téléchargées et mises en cache via flutter_cache_manager pour être
+    disponibles sans connexion.
+  */
   Future<void> downloadPlants() async {
     final offline = OfflineService();
     final plants = await getPlantsFromNetwork();
@@ -257,6 +284,7 @@ class ApiService {
     }
   }
 
+  // Future.wait exécute les deux requêtes en parallèle pour réduire le temps de téléchargement.
   Future<void> downloadDecisionPaths() async {
     final offline = OfflineService();
     final results = await Future.wait([

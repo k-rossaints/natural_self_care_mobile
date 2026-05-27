@@ -1,9 +1,16 @@
+/*
+  Modèle représentant un symptôme ou problème de santé.
+  startStepId référence le premier DecisionStep du parcours de diagnostic
+  associé à ce symptôme.
+  additionalInfo correspond à l'encadré "Bon à savoir" affiché dans
+  l'écran de session de décision.
+*/
 class Symptom {
   final int id;
   final String name;
   final String? description;
-  final String? additionalInfo; // L'encadré bleu "Bon à savoir"
-  final int? startStepId; // L'ID de la première question
+  final String? additionalInfo;
+  final int? startStepId;
 
   Symptom({
     required this.id,

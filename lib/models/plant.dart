@@ -1,3 +1,8 @@
+/*
+  Modèle central de l'application représentant une plante médicinale.
+  Tous les champs textuels sont nullable car les fiches peuvent être
+  partiellement remplies dans le CMS Directus.
+*/
 class Plant {
   final int id;
   final String name;
@@ -19,7 +24,6 @@ class Plant {
   final String? procurementCulture;
   final String? confusionRisks;
   final String? scientificReferences;
-  
   final List<String> ailments;
 
   Plant({
@@ -46,6 +50,13 @@ class Plant {
     this.ailments = const [],
   });
 
+  /*
+    Désérialisation depuis deux sources possibles :
+    - API Directus : affections dans linked_ailments[{ailments_id: {name}}]
+    - Cache local : affections dans ailments_list (liste de strings aplatie)
+    Le champ image peut être un objet Map (API) ou une string (cache) ;
+    seul l'id est conservé dans les deux cas.
+  */
   factory Plant.fromJson(Map<String, dynamic> json) {
     List<String> extractedAilments = [];
     if (json['linked_ailments'] != null) {
@@ -55,7 +66,6 @@ class Plant {
         }
       }
     } else if (json['ailments_list'] != null) {
-      // Pour la récupération depuis le mode hors ligne (format simplifié)
       extractedAilments = List<String>.from(json['ailments_list']);
     }
 
@@ -84,7 +94,8 @@ class Plant {
     );
   }
 
-  // --- NOUVEAU : Fonction pour transformer la plante en texte pour la sauvegarde ---
+  // Les affections sont aplaties en liste de strings sous ailments_list
+  // pour simplifier la sérialisation et la relecture depuis le cache local.
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -107,7 +118,7 @@ class Plant {
       'procurement_culture': procurementCulture,
       'confusion_risks': confusionRisks,
       'scientific_references': scientificReferences,
-      'ailments_list': ailments, // On sauvegarde la liste simple
+      'ailments_list': ailments,
     };
   }
 }

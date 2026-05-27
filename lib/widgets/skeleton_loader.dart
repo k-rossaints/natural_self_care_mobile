@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
-/// Une boîte grise animée qui simule du contenu en chargement
+/*
+  Widget de base pour l'effet skeleton.
+  Utilise un AnimationController en boucle (repeat reverse) pour faire varier
+  l'opacité entre 0.4 et 0.9, simulant un effet de pulsation pendant le chargement.
+*/
 class SkeletonBox extends StatefulWidget {
   final double width;
   final double height;
@@ -32,6 +36,7 @@ class _SkeletonBoxState extends State<SkeletonBox>
     _animation = Tween<double>(begin: 0.4, end: 0.9).animate(_controller);
   }
 
+  // Le controller doit être explicitement libéré pour éviter les fuites mémoire.
   @override
   void dispose() {
     _controller.dispose();
@@ -49,6 +54,7 @@ class _SkeletonBoxState extends State<SkeletonBox>
           width: widget.width,
           height: widget.height,
           decoration: BoxDecoration(
+            // Couleur adaptée au thème pour rester cohérent visuellement.
             color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
             borderRadius: BorderRadius.circular(widget.borderRadius),
           ),
@@ -58,7 +64,7 @@ class _SkeletonBoxState extends State<SkeletonBox>
   }
 }
 
-/// Skeleton d'une carte plante
+// Skeleton reproduisant la structure d'une PlantCard : image à gauche, titre, sous-titre et tags à droite.
 class PlantCardSkeleton extends StatelessWidget {
   const PlantCardSkeleton({super.key});
 
@@ -75,7 +81,6 @@ class PlantCardSkeleton extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Image placeholder
           const SkeletonBox(width: 60, height: 60, borderRadius: 10),
           const SizedBox(width: 16),
           Expanded(
@@ -102,7 +107,7 @@ class PlantCardSkeleton extends StatelessWidget {
   }
 }
 
-/// Liste de skeletons de cartes plantes
+// Génère une liste de PlantCardSkeleton pour remplir l'écran pendant le chargement initial.
 class PlantListSkeleton extends StatelessWidget {
   final int count;
   const PlantListSkeleton({super.key, this.count = 6});
@@ -115,7 +120,8 @@ class PlantListSkeleton extends StatelessWidget {
   }
 }
 
-/// Skeleton d'un item de liste simple (symptôme, problème...)
+// Skeleton générique pour les listes simples (symptômes, problèmes).
+// Structure : icône ronde à gauche, deux lignes de texte à droite.
 class ListItemSkeleton extends StatelessWidget {
   const ListItemSkeleton({super.key});
 
@@ -152,7 +158,7 @@ class ListItemSkeleton extends StatelessWidget {
   }
 }
 
-/// Liste de skeletons simples
+// Génère une liste de ListItemSkeleton pour les écrans de listes simples.
 class ListSkeleton extends StatelessWidget {
   final int count;
   const ListSkeleton({super.key, this.count = 6});

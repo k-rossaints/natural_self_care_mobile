@@ -1,3 +1,5 @@
+// Référence bibliographique générique, non associée à une plante spécifique.
+// Utilisée dans l'écran Démarche scientifique.
 class GenericReference {
   final int id;
   final String name;
