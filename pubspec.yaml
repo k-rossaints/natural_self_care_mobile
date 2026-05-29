@@ -1,5 +1,5 @@
 name: natural_self_care_mobile
-description: "A new Flutter project."
+description: "Natural Self-Care"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -46,5 +46,11 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/favicon.png" 
+  image_path: "assets/favicon.png"
   min_sdk_android: 21
+
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/favicon_foreground.png"
+
+  remove_alpha_ios: true
+  background_color_ios: "#FFFFFF"
